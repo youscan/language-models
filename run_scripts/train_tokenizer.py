@@ -25,5 +25,5 @@ def main() -> None:
     config_file.tokenizer.save(config_file.saving_folder)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

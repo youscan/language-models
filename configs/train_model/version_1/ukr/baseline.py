@@ -1,13 +1,9 @@
-from transformers import RobertaConfig, RobertaTokenizerFast, RobertaForMaskedLM
+from transformers import RobertaConfig, RobertaForMaskedLM, RobertaTokenizerFast
 
 from src.configs import TrainModelConfig
 
 _model_config = RobertaConfig(
-    vocab_size=32000,
-    max_position_embeddings=514,
-    num_attention_heads=12,
-    num_hidden_layers=6,
-    type_vocab_size=1,
+    vocab_size=32000, max_position_embeddings=514, num_attention_heads=12, num_hidden_layers=6, type_vocab_size=1
 )
 
 _model = RobertaForMaskedLM(_model_config)

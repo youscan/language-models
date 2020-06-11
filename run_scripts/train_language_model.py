@@ -1,6 +1,6 @@
 import argparse
 
-from transformers import LineByLineTextDataset, DataCollatorForLanguageModeling, Trainer, TrainingArguments
+from transformers import DataCollatorForLanguageModeling, LineByLineTextDataset, Trainer, TrainingArguments
 
 from src.configs import TrainModelConfig
 
@@ -11,16 +11,14 @@ def main() -> None:
     args = parser.parse_args()
 
     config = TrainModelConfig.load(args.config_file)
-    logger = config_file.logger()  # noqa: F841
+    logger = config.logger()  # noqa: F841
 
     dataset = LineByLineTextDataset(
-        tokenizer=config.tokenizer,
-        file_path=config.file_path,
-        block_size=config.block_size,
+        tokenizer=config.tokenizer, file_path=config.file_path, block_size=config.block_size
     )
 
     data_collator = DataCollatorForLanguageModeling(
-        tokenizer=config.tokenizer, mlm=True, mlm_probability=config.mlm_probability,
+        tokenizer=config.tokenizer, mlm=True, mlm_probability=config.mlm_probability
     )
 
     training_args = TrainingArguments(
@@ -46,5 +44,5 @@ def main() -> None:
     config.tokenizer.save_pretrained(config.saving_folder)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -27,5 +27,5 @@ def main() -> None:
                 f.write("\n")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

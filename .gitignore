@@ -89,5 +89,7 @@ ENV/
 .ropeproject
 
 .idea/
+.mypy_cache/
+apex/
 data/
 results/
