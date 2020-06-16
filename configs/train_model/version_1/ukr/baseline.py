@@ -14,4 +14,5 @@ config = TrainModelConfig(
     file_path="data/version_1/ukr/prepare_one_line_text_format/sampled_mentions/data.txt",
     model=_model,
     tokenizer=_tokenizer,
+    batch_size_per_gpu=128,
 )

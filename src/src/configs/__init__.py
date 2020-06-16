@@ -1,5 +1,3 @@
-from .download_data_from_es import DownloadDataFromESConfig
-from .prepare_data_from_es import PrepareDataFromEsConfig
 from .prepare_one_line_text_format import PrepareOneLineTextFormatConfig
 from .train_model import TrainModelConfig
 from .train_tokenizer import TrainTokenizerConfig
