@@ -1,5 +1,6 @@
-from language_model.configs import TrainModelConfig
 from transformers import RobertaConfig, RobertaForMaskedLM, RobertaTokenizer
+
+from language_model.configs import TrainModelConfig
 
 _model_config = RobertaConfig(
     vocab_size=52000,

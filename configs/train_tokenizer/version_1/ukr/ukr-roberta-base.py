@@ -1,5 +1,6 @@
-from language_model.configs import TrainTokenizerConfig
 from tokenizers import ByteLevelBPETokenizer
+
+from language_model.configs import TrainTokenizerConfig
 
 config = TrainTokenizerConfig(
     source_folder_path="data/version_1/ukr/data/wiki_oscar_data/",
