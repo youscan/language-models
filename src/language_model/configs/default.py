@@ -7,7 +7,7 @@ from typing import Any, Optional, Type, TypeVar
 
 T = TypeVar("T", bound="Config")
 # we append a root project path to be able to import `configs`,
-# because now we have src/custom_vtorch and we don't see `configs` without changes
+# because now we have src/language_model and we don't see `configs` without changes
 sys.path.append(str(pathlib.Path().absolute()))
 
 

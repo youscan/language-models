@@ -1,3 +1,2 @@
-from .prepare_one_line_text_format import PrepareOneLineTextFormatConfig
 from .train_model import TrainModelConfig
 from .train_tokenizer import TrainTokenizerConfig

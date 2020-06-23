@@ -8,9 +8,6 @@ pip install -r requirements.txt
   pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
 )
 
-
-pip install git+https://github.com/youscan/ds-shared.git
-
 pip install -e .
 
 pre-commit install

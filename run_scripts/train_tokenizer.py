@@ -1,8 +1,15 @@
 import argparse
+import os
+from typing import List
 
-from ds_shared.loading import get_all_files_in_folder
+from language_model.configs import TrainTokenizerConfig
 
-from src.configs import TrainTokenizerConfig
+
+def get_all_files_in_folder(data_folder_path: str) -> List[str]:
+    data_files_paths = []
+    for (dir_path, _, filenames) in os.walk(data_folder_path):
+        data_files_paths.extend([os.path.join(dir_path, file_name) for file_name in filenames])
+    return data_files_paths
 
 
 def main() -> None:

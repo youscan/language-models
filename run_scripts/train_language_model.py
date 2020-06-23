@@ -1,8 +1,7 @@
 import argparse
 
+from language_model.configs import TrainModelConfig
 from transformers import DataCollatorForLanguageModeling, LineByLineTextDataset, Trainer, TrainingArguments
-
-from src.configs import TrainModelConfig
 
 
 def main() -> None:
