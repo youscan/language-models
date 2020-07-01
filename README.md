@@ -19,6 +19,9 @@ Below is the list of corpora used along with the output of wc command (counting 
 * The model was trained on 4xV100 (85 hours)
 * Training configuration you can find in the config file (`configs/train_model/version_1/ukr/ukr-roberta-base.py`)
 
+## Evaluation
+ukr-roberta-base was tested on internal YouScan tasks, we got improvements by 2 percent (fscore) comparing to [mBERT](https://huggingface.co/bert-base-multilingual-cased).
+
 ## Usage
 Ukrainian Roberta is released via [HuggingFace Transformers library](https://huggingface.co/transformers/).
 
