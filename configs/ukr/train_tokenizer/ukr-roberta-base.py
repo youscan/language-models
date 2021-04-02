@@ -1,8 +1,8 @@
-from tokenizers import ByteLevelBPETokenizer
+from tokenizers.implementations import ByteLevelBPETokenizer
 
-from language_model.configs import TrainTokenizerConfig
+from language_model.tokenization.trainer import ByteLevelBPETokenizerTrainer
 
-config = TrainTokenizerConfig(
+task = ByteLevelBPETokenizerTrainer(
     source_folder_path="data/version_1/ukr/data/wiki_oscar_data/",
     tokenizer=ByteLevelBPETokenizer(),
     vocab_size=52000,
