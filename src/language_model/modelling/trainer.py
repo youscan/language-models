@@ -12,12 +12,6 @@ from transformers import (
 from ..pipeline import SandboxTask
 
 
-class Test(object):
-    def __init__(self, s: str, i: int):
-        self.i = i
-        self.s = s
-
-
 class RobertaForMaskedLMTrainTask(SandboxTask):
     def __init__(
         self,
@@ -68,5 +62,5 @@ class RobertaForMaskedLMTrainTask(SandboxTask):
 
         trainer.train()
 
-        trainer.save_model(os.path.join(self.sandbox_folder_path, "model"))
-        self.tokenizer.save_pretrained(os.path.join(self.sandbox_folder_path, "tokenizer"))
+        trainer.save_model(os.path.join(environment_path, "model"))
+        self.tokenizer.save_pretrained(os.path.join(environment_path, "tokenizer"))
