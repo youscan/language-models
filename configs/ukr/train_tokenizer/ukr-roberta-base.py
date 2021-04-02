@@ -3,7 +3,7 @@ from tokenizers.implementations import ByteLevelBPETokenizer
 from language_model.tokenization.trainer import ByteLevelBPETokenizerTrainer
 
 task = ByteLevelBPETokenizerTrainer(
-    source_folder_path="data/version_1/ukr/data/wiki_oscar_data/",
+    source_folder_path="data/ukr/data/wiki_oscar_data/",
     tokenizer=ByteLevelBPETokenizer(),
     vocab_size=52000,
     min_frequency=5,
