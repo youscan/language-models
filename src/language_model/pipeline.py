@@ -14,7 +14,7 @@ DEFAULT_CONFIGURATION_DIR: str = "configs"
 
 
 class ITask(object):
-    def execute(self, sandbox_folder_path: str) -> None:
+    def execute(self, environment_path: str) -> None:
         raise NotImplementedError()
 
 

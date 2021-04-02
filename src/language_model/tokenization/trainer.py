@@ -22,7 +22,7 @@ class ByteLevelBPETokenizerTrainer(SandboxTask):
         self.min_frequency = min_frequency
         self.vocab_size = vocab_size
 
-    def execute(self, sandbox_folder_path: str) -> None:
+    def execute(self, environment_path: str) -> None:
         files = self.get_all_files_in_folder(self.source_folder_path)
 
         self.tokenizer.train(
@@ -32,7 +32,7 @@ class ByteLevelBPETokenizerTrainer(SandboxTask):
             special_tokens=self.special_tokens,
         )
 
-        self.tokenizer.save(os.path.join(sandbox_folder_path, "tokenizer"))
+        self.tokenizer.save(os.path.join(environment_path, "tokenizer"))
 
     @staticmethod
     def get_all_files_in_folder(data_folder_path: str) -> List[str]:

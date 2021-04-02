@@ -42,7 +42,7 @@ class RobertaForMaskedLMTrainTask(SandboxTask):
         self.save_steps = save_steps
         self.save_total_limit = save_total_limit
 
-    def execute(self, sandbox_folder_path: str) -> None:
+    def execute(self, environment_path: str) -> None:
         dataset = LineByLineTextDataset(tokenizer=self.tokenizer, file_path=self.file_path, block_size=self.block_size)
 
         data_collator = DataCollatorForLanguageModeling(
