@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 pip install -U pip
 pip install -r requirements.txt
+pip install -r requirements.dev.txt
 
 (
   git clone https://github.com/NVIDIA/apex || { echo "Failed to download and install Nvidia apex"; exit 1; }
