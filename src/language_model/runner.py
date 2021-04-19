@@ -23,4 +23,7 @@ class ConfigurationFileRunner(TaskRunner):
         experiment_sandbox_path = os.path.join(*experiment_ids)
         logger = init_logger(experiment_ids, overwrite=True)
         logger.info(f"Running task from {self.config_path}")
-        self.task.execute(os.path.join(self.task.get_sandbox_folder_path(), experiment_sandbox_path))
+        sandbox_folder_path = os.path.join(self.task.get_sandbox_folder_path(), experiment_sandbox_path)
+        if not os.path.exists(sandbox_folder_path) or not os.path.isdir(sandbox_folder_path):
+            os.makedirs(sandbox_folder_path)
+        self.task.execute(sandbox_folder_path)
