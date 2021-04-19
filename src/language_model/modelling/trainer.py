@@ -1,3 +1,4 @@
+import logging
 import os
 
 from transformers import (
@@ -10,6 +11,19 @@ from transformers import (
 )
 
 from ..pipeline import SandboxTask
+
+
+class TransformersTrainTask(SandboxTask):
+    def __init__(self, trainer: Trainer, model_folder_name: str = "model"):
+        super().__init__()
+        self.trainer = trainer
+        self.model_folder_name = model_folder_name
+
+    def execute(self, environment_path: str) -> None:
+        result = self.trainer.train()
+        logging.info(f"Training result: {result}")
+        # self.trainer.model.save_pretrained(os.path.join(environment_path, self.model_folder_name))
+        self.trainer.save_model(os.path.join(environment_path, self.model_folder_name))
 
 
 class RobertaForMaskedLMTrainTask(SandboxTask):
