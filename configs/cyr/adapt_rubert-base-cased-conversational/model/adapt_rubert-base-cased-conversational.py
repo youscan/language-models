@@ -3,12 +3,12 @@ from transformers import (
     AutoModelForMaskedLM,
     BertTokenizerFast,
     DataCollatorForLanguageModeling,
-    LineByLineTextDataset,
     PreTrainedModel,
     Trainer,
     TrainingArguments,
 )
 
+from language_model.data.dataset import LineByLineTextDataset
 from language_model.modelling.trainer import TransformersTrainTask
 from language_model.tokenization.factory import FAST_TOKENIZER_DEFAULT_FILE_NAME
 
@@ -19,6 +19,11 @@ TOKENIZER_PATH = (
     f"outputs/cyr/adapt_rubert-base-cased-conversational/tokenizer/extend_base_vocab=96k"
     f"/{FAST_TOKENIZER_DEFAULT_FILE_NAME}"
 )
+TEXT_FILE_PATHS = [
+    "/home/pk/language-models/data/cyr/adapt_rubert-base-cased-conversational/extract_texts/rus/texts.txt",
+    "/home/pk/language-models/data/cyr/adapt_rubert-base-cased-conversational/extract_texts/unc/texts.txt",
+    "/home/pk/language-models/data/cyr/adapt_rubert-base-cased-conversational/extract_texts/ukr/texts.txt",
+]
 
 tokenizer = BertTokenizerFast(
     vocab_file="",
@@ -32,11 +37,7 @@ model: PreTrainedModel = AutoModelForMaskedLM.from_pretrained(pretrained_model_n
 model.to(DEVICE)
 model.resize_token_embeddings(tokenizer.get_vocab_size(with_added_tokens=True))
 
-dataset = LineByLineTextDataset(
-    tokenizer=tokenizer,
-    file_path="data/cyr/adapt_rubert-base-cased-conversational/extract_texts/test.txt",
-    block_size=128,
-)
+dataset = LineByLineTextDataset(tokenizer=tokenizer, file_path=TEXT_FILE_PATHS, block_size=128)
 data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=True, mlm_probability=0.15)
 
 training_args = TrainingArguments(
