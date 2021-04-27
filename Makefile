@@ -1,6 +1,7 @@
 build:
 	@docker build . -t language-models
 
+
 run:
 	@docker run -d -it --runtime=nvidia \
     -v ~/language-models/configs:/app/configs \
