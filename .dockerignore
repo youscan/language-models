@@ -1,0 +1,9 @@
+.git
+.idea
+.ipynb*
+data/
+lab/
+logs/
+outputs/
+temp/
+venv/
