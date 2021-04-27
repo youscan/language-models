@@ -12,20 +12,22 @@ from language_model.data.dataset import LineByLineTextDataset, split_lazy_datase
 from language_model.modelling.trainer import TransformersTrainTask
 from language_model.tokenization.factory import FAST_TOKENIZER_DEFAULT_FILE_NAME
 
+LOGGING_FORMAT: str = "%(asctime)s : %(levelname)s : %(module)s : %(message)s"
+
 TRANSFORMER_MODEL_NAME = "DeepPavlov/rubert-base-cased-conversational"
 TOKENIZER_PATH = (
     f"outputs/cyr/adapt_rubert-base-cased-conversational/tokenizer/extend_base_vocab=96k"
     f"/{FAST_TOKENIZER_DEFAULT_FILE_NAME}"
 )
 TEXT_FILE_PATHS = [
-    "/home/pk/language-models/data/cyr/adapt_rubert-base-cased-conversational/extract_texts/rus/texts.txt",
-    "/home/pk/language-models/data/cyr/adapt_rubert-base-cased-conversational/extract_texts/unc/texts.txt",
-    "/home/pk/language-models/data/cyr/adapt_rubert-base-cased-conversational/extract_texts/ukr/texts.txt",
+    "data/cyr/adapt_rubert-base-cased-conversational/extract_texts/test.txt",
+    "data/cyr/adapt_rubert-base-cased-conversational/extract_texts/test2.txt",
+    "data/cyr/adapt_rubert-base-cased-conversational/extract_texts/test3.txt",
 ]
 TRAIN_TEST_PORTIONS = [0.95, 0.05]
 
 tokenizer = BertTokenizerFast(
-    vocab_file="",
+    vocab_file=None,
     tokenizer_file=TOKENIZER_PATH,
     from_slow=False,
     do_lower_case=False,
@@ -41,14 +43,14 @@ train_set, eval_set = split_lazy_dataset(dataset, portions=TRAIN_TEST_PORTIONS)
 data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=True, mlm_probability=0.15)
 
 training_args = TrainingArguments(
+    output_dir="temp",
     do_train=True,
     do_eval=True,
     evaluation_strategy=IntervalStrategy.EPOCH,
+    overwrite_output_dir=True,
     num_train_epochs=1,
     per_device_train_batch_size=16,
     per_device_eval_batch_size=32,
-    output_dir="temp",
-    overwrite_output_dir=True,
     save_steps=10000,
     save_total_limit=2,
     prediction_loss_only=False,
@@ -60,6 +62,5 @@ training_args = TrainingArguments(
 trainer = Trainer(
     model=model, args=training_args, data_collator=data_collator, train_dataset=train_set, eval_dataset=eval_set
 )
-
 
 task = TransformersTrainTask(trainer=trainer)
