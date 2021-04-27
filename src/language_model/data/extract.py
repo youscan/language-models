@@ -104,8 +104,11 @@ class ExtractTextsFromData(SandboxTask):
     def execute(self, environment_path: str) -> None:
         filepath_source = FilePathSource(paths=self.source_folder_paths, extension_suffix=".p")
         json_data_source = StackingSource([PickleDataSource(path) for path in filepath_source])
+        subtitles_filtering_source = FilteringSource(
+            json_data_source, condition=lambda mention: "subtitles" not in mention.get("contentTypes", set())
+        )
         text_hash_filtered_source = CacheDeduplicatingSource(
-            json_data_source, cache_size=100000, refresh=False, feature_extractor=pick_text_hash, log=20000
+            subtitles_filtering_source, cache_size=100000, refresh=False, feature_extractor=pick_text_hash, log=20000
         )
         text_source = JsonFieldSource(text_hash_filtered_source, key="text", default="")
         line_text_source = SplittingSource(text_source, splitting_function=str.splitlines)
