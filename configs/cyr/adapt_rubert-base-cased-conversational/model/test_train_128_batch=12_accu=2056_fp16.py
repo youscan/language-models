@@ -4,6 +4,7 @@ from transformers import (
     DataCollatorForLanguageModeling,
     IntervalStrategy,
     PreTrainedModel,
+    SchedulerType,
     Trainer,
     TrainingArguments,
 )
@@ -49,18 +50,27 @@ training_args = TrainingArguments(
     evaluation_strategy=IntervalStrategy.EPOCH,
     num_train_epochs=1,
     per_device_train_batch_size=12,
-    gradient_accumulation_steps=2,
-    per_device_eval_batch_size=32,
+    gradient_accumulation_steps=340,
+    per_device_eval_batch_size=12,
+    group_by_length=True,
     save_steps=10000,
     save_total_limit=2,
     prediction_loss_only=True,
-    learning_rate=5e-5,
+    learning_rate=1e-3,
+    lr_scheduler_type=SchedulerType.LINEAR,
+    warmup_ratio=0.02,
+    fp16=True,
     logging_dir="logs",
     seed=42,
 )
 
 trainer = Trainer(
-    model=model, args=training_args, data_collator=data_collator, train_dataset=train_set, eval_dataset=eval_set
+    model=model,
+    args=training_args,
+    tokenizer=tokenizer,
+    data_collator=data_collator,
+    train_dataset=train_set,
+    eval_dataset=eval_set,
 )
 
 task = TransformersTrainTask(trainer=trainer)
