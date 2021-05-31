@@ -3,10 +3,10 @@ from typing import List
 
 from tokenizers import ByteLevelBPETokenizer
 
-from ..pipeline import SandboxTask
+from ..pipeline import ITask
 
 
-class ByteLevelBPETokenizerTrainer(SandboxTask):
+class ByteLevelBPETokenizerTrainer(ITask):
     def __init__(
         self,
         source_folder_path: str,

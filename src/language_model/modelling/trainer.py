@@ -9,10 +9,10 @@ from transformers import (
     TrainingArguments,
 )
 
-from ..pipeline import SandboxTask
+from ..pipeline import ITask
 
 
-class RobertaForMaskedLMTrainTask(SandboxTask):
+class RobertaForMaskedLMTrainTask(ITask):
     def __init__(
         self,
         file_path: str,
@@ -44,7 +44,7 @@ class RobertaForMaskedLMTrainTask(SandboxTask):
         )
 
         training_args = TrainingArguments(
-            output_dir=self.sandbox_folder_path,
+            output_dir=os.path.join(environment_path, "temp"),
             overwrite_output_dir=True,
             num_train_epochs=self.epochs,
             per_gpu_train_batch_size=self.batch_size_per_gpu,
