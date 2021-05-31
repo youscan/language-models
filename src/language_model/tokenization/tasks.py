@@ -2,11 +2,11 @@ import os
 
 from tokenizers import Tokenizer
 
-from ..pipeline import SandboxTask
+from ..pipeline import ITask
 from .factory import FAST_TOKENIZER_DEFAULT_FILE_NAME
 
 
-class FastTokenizerSavingTask(SandboxTask):
+class FastTokenizerSavingTask(ITask):
     def __init__(self, fast_tokenizer: Tokenizer) -> None:
         super().__init__()
         self.fast_tokenizer = fast_tokenizer

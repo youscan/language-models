@@ -3,14 +3,13 @@ import os
 
 from tokenizers.tokenizers import Tokenizer
 
-from language_model.pipeline import SandboxTask
-
+from ..pipeline import ITask
 from .factory import FAST_TOKENIZER_DEFAULT_FILE_NAME, TokenizerBuilder
 
 # from json import dump, loads
 
 
-class ExtendTokenizer(SandboxTask):
+class ExtendTokenizer(ITask):
     def __init__(
         self, base_tokenizer: Tokenizer, extension_tokenizer: Tokenizer, tokenizer_builder: TokenizerBuilder
     ) -> None:

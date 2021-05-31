@@ -11,7 +11,7 @@ from pynlple.data.filesource import FilePathSource
 from pynlple.data.source import Source
 from pynlple.processing.preprocessor import BoldTagReplacer, IPreprocessor, StackingPreprocessor
 
-from language_model.pipeline import SandboxTask
+from ..pipeline import ITask
 
 MIN_TEXT_LEN = 10
 MIN_TEXT_TOKEN_LENGTH = 2
@@ -83,16 +83,15 @@ class PickleDataSource(Source):
         return iter(load_pickle(self.pickle_filepath))
 
 
-class ExtractTextsFromData(SandboxTask):
+class ExtractTextsFromData(ITask):
     def __init__(
         self,
         source_folder_paths: Iterable[str],
         preprocessor: Optional[IPreprocessor] = None,
         min_text_length: int = MIN_TEXT_LEN,
         min_text_token_length: int = MIN_TEXT_TOKEN_LENGTH,
-        sandbox_folder_path: str = "data",
     ) -> None:
-        super().__init__(sandbox_folder_path)
+        super().__init__()
         preprocessors = [BoldTagReplacer()]
         if preprocessor is not None:
             preprocessors.append(preprocessor)

@@ -6,10 +6,10 @@ from typing import Any, Callable, Dict, Optional
 from ds_shared.download import YsDownloader
 from ds_shared.saving import save_pickle
 
-from ..pipeline import SandboxTask
+from ..pipeline import ITask
 
 
-class YSDataDownloadTask(SandboxTask):
+class YSDataDownloadTask(ITask):
     def __init__(
         self,
         credentials_path: str,
@@ -18,9 +18,7 @@ class YSDataDownloadTask(SandboxTask):
         from_mention_id: Optional[int] = None,
         batch_size: int = 50000,
         mention_processor: Callable[[Dict[str, Any]], Dict[str, Any]] = lambda x: x,
-        sandbox_folder_path: str = "data",
     ):
-        super().__init__(sandbox_folder_path=sandbox_folder_path)
         self.credentials_path = credentials_path
         with open(self.credentials_path, "r", encoding="utf-8") as f:
             self.credentials = json.load(f)
