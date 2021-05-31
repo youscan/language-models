@@ -1,0 +1,4 @@
+dvc==0.63.*
+git+https://github.com/youscan/ds-shared.git@master
+ipython
+pre-commit

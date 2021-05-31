@@ -1,6 +1,6 @@
 from transformers import RobertaConfig, RobertaForMaskedLM, RobertaTokenizer
 
-from language_model.configs import TrainModelConfig
+from language_model.modelling.trainer import RobertaForMaskedLMTrainTask
 
 _model_config = RobertaConfig(
     vocab_size=52000,
@@ -13,10 +13,10 @@ _model_config = RobertaConfig(
 
 _model = RobertaForMaskedLM(_model_config)
 
-_tokenizer = RobertaTokenizer.from_pretrained("results/version_1/ukr/train_tokenizer/ukr-roberta-base", max_len=512)
+_tokenizer = RobertaTokenizer.from_pretrained("outputs/ukr/train_tokenizer/ukr-roberta-base/tokenizer", max_len=512)
 
-config = TrainModelConfig(
-    file_path="data/version_1/ukr/aggregated_data/ukr-roberta-base/data.txt",
+task = RobertaForMaskedLMTrainTask(
+    file_path="data/ukr/aggregated_data/ukr-roberta-base/data.txt",
     model=_model,
     tokenizer=_tokenizer,
     batch_size_per_gpu=40,
