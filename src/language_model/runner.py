@@ -54,22 +54,17 @@ def drop_configuration_dir(experiment_ids: Sequence[str]) -> Sequence[str]:
 def init_logger(experiment_identifiers: Sequence[str], overwrite: bool = True, log_to_stderr: bool = False) -> Logger:
     path_components = [DEFAULT_LOG_DIR] + list(experiment_identifiers)
     log_path = os.path.join(*path_components)
-    return configure_logger(log_path, file=DEFAULT_LOG_FILE, overwrite=overwrite, log_to_stderr=log_to_stderr)
 
-
-def configure_logger(
-    path: str = DEFAULT_LOG_DIR, file: str = DEFAULT_LOG_FILE, overwrite: bool = True, log_to_stderr: bool = False
-) -> Logger:
     logger = getLogger()
     logger.setLevel(INFO)
 
-    logging_path = os.path.join(path)
+    logging_path = os.path.join(log_path)
     if not os.path.exists(logging_path):
         os.makedirs(logging_path)
 
     formatter = Formatter(LOGGING_FORMAT)
 
-    fh = FileHandler(os.path.join(logging_path, file), mode="w" if overwrite else "a", encoding="utf-8")
+    fh = FileHandler(os.path.join(logging_path, DEFAULT_LOG_FILE), mode="w" if overwrite else "a", encoding="utf-8")
     fh.setFormatter(formatter)
     logger.addHandler(fh)
 
