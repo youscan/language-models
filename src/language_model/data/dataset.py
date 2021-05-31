@@ -2,7 +2,7 @@ import itertools
 import logging
 import math
 from itertools import chain
-from typing import Dict, Iterable, List, Optional, Sequence
+from typing import Dict, Iterable, Iterator, List, Optional, Sequence
 
 import torch
 from torch._utils import _accumulate
@@ -47,43 +47,39 @@ class LineByLineTextDataset(LazyDataset):
         self.block_size = block_size
         self.process_batch_size = process_batch_size
 
-    def __linit_entries__(self) -> Sequence[T_co]:
-        logging.info(f"Creating features from dataset files: {self.file_paths}")
-        entries: List[List[Dict[str, torch.tensor]]] = []
+    def _extract_batch(self, lines: List[str]) -> List[Dict[str, torch.Tensor]]:
+        batch_encoding = self.tokenizer(
+            lines,
+            add_special_tokens=True,
+            truncation=True,
+            max_length=self.block_size,
+            return_token_type_ids=False,
+            return_attention_mask=False,
+            return_overflowing_tokens=self.return_overflowing_tokens,
+        )
+        return [{"input_ids": torch.tensor(e, dtype=torch.long)} for e in batch_encoding["input_ids"]]
+
+    def _read_chunk(self) -> Iterator[List[str]]:
         lines: List[str] = []
         for file_path in self.file_paths:
             with open(file_path, encoding="utf-8") as f:
-                for line in f.read().splitlines():
+                for line in f:
                     if len(line) > 0 and not line.isspace():
                         lines.append(line)
 
                     if len(lines) == self.process_batch_size:
-                        batch_encoding = self.tokenizer(
-                            lines,
-                            add_special_tokens=True,
-                            truncation=True,
-                            max_length=self.block_size,
-                            return_token_type_ids=False,
-                            return_attention_mask=False,
-                            return_overflowing_tokens=self.return_overflowing_tokens,
-                        )
-                        entries.append(
-                            [{"input_ids": torch.tensor(e, dtype=torch.long)} for e in batch_encoding["input_ids"]]
-                        )
+                        yield lines
                         lines = []
-            logging.info(f"Currently read total {sum(map(len, entries))} after file name: {file_path}")
+            logging.info(f"Currently read file name: {file_path}")
         if len(lines) > 0:
-            batch_encoding = self.tokenizer(
-                lines,
-                add_special_tokens=True,
-                truncation=True,
-                max_length=self.block_size,
-                return_token_type_ids=False,
-                return_attention_mask=False,
-                return_overflowing_tokens=self.return_overflowing_tokens,
-            )
-            entries.append([{"input_ids": torch.tensor(e, dtype=torch.long)} for e in batch_encoding["input_ids"]])
-            logging.info(f"Currently read total {sum(map(len, entries))} at end")
+            yield lines
+
+    def __linit_entries__(self) -> Sequence[T_co]:
+        logging.info(f"Creating features from dataset files: {self.file_paths}")
+        entries: List[List[Dict[str, torch.tensor]]] = []
+        for lines in self._read_chunk():
+            entries.append(self._extract_batch(lines))
+        logging.info(f"Currently read total {sum(map(len, entries))} at end")
 
         logging.info("Extracted and converted training data to `input_ids`.")
         return list(chain.from_iterable(entries))
