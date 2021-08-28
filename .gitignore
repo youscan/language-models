@@ -91,5 +91,6 @@ ENV/
 .idea/
 .mypy_cache/
 apex/
-data/
+/data/
 results/
+outputs/

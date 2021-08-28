@@ -1,4 +1,6 @@
+import logging
 import os
+from typing import Optional
 
 from transformers import (
     DataCollatorForLanguageModeling,
@@ -10,6 +12,20 @@ from transformers import (
 )
 
 from ..pipeline import ITask
+
+
+class TransformersTrainTask(ITask):
+    def __init__(self, trainer: Trainer, checkpoint_folder: Optional[str] = None, model_folder_name: str = "model"):
+        super().__init__()
+        self.trainer = trainer
+        self.checkpoint_folder = checkpoint_folder
+        self.model_folder_name = model_folder_name
+
+    def execute(self, environment_path: str) -> None:
+        result = self.trainer.train(resume_from_checkpoint=self.checkpoint_folder)
+        logging.info(f"Training result: {result}")
+        # self.trainer.model.save_pretrained(os.path.join(environment_path, self.model_folder_name))
+        self.trainer.save_model(os.path.join(environment_path, self.model_folder_name))
 
 
 class RobertaForMaskedLMTrainTask(ITask):

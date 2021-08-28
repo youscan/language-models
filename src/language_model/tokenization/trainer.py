@@ -1,9 +1,12 @@
 import os
-from typing import List
+from typing import Iterator, List, Union
 
-from tokenizers import ByteLevelBPETokenizer
+from tokenizers import Tokenizer
+from tokenizers.implementations import ByteLevelBPETokenizer
+from tokenizers.trainers import Trainer
 
 from ..pipeline import ITask
+from .factory import FAST_TOKENIZER_DEFAULT_FILE_NAME
 
 
 class ByteLevelBPETokenizerTrainer(ITask):
@@ -40,3 +43,22 @@ class ByteLevelBPETokenizerTrainer(ITask):
         for (dir_path, _, filenames) in os.walk(data_folder_path):
             data_files_paths.extend([os.path.join(dir_path, file_name) for file_name in filenames])
         return data_files_paths
+
+
+class TrainTokenizerTask(ITask):
+    def __init__(
+        self,
+        tokenizer: Tokenizer,
+        iterator: Union[Iterator[str], Iterator[Iterator[str]]],
+        trainer: Trainer,
+        tokenizer_file_name: str = FAST_TOKENIZER_DEFAULT_FILE_NAME,
+    ) -> None:
+        super().__init__()
+        self.tokenizer = tokenizer
+        self.iterator = iterator
+        self.trainer = trainer
+        self.tokenizer_file_name = tokenizer_file_name
+
+    def execute(self, environment_path: str) -> None:
+        self.tokenizer.train_from_iterator(self.iterator, trainer=self.trainer)
+        self.tokenizer.save(path=os.path.join(environment_path, self.tokenizer_file_name), pretty=True)
