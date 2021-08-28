@@ -2,13 +2,13 @@ import itertools
 import logging
 import math
 from itertools import chain
-from typing import Dict, Iterable, Iterator, List, Optional, Sequence
+from typing import Dict, Iterable, Iterator, List, Optional, Sequence, Union
 
 import torch
 from torch._utils import _accumulate
 from torch.utils.data import Dataset
 from torch.utils.data.dataset import T_co
-from transformers import PreTrainedTokenizer
+from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
 
 
 class LazyDataset(Dataset):
@@ -76,7 +76,7 @@ class LineByLineTextDataset(LazyDataset):
 
     def __linit_entries__(self) -> Sequence[T_co]:
         logging.info(f"Creating features from dataset files: {self.file_paths}")
-        entries: List[List[Dict[str, torch.tensor]]] = []
+        entries: List[List[Dict[str, torch.Tensor]]] = []
         for lines in self._read_chunk():
             entries.append(self._extract_batch(lines))
         logging.info(f"Currently read total {sum(map(len, entries))} at end")
@@ -126,3 +126,82 @@ class LazySubset(Dataset):
 def split_lazy_dataset(dataset: LazyDataset, portions: Sequence[float]) -> List[LazySubset]:
     portions_provider = Portions(dataset=dataset, portions=portions)
     return [LazySubset(dataset, portions_provider=portions_provider, portion_id=i) for i in range(len(portions))]
+
+
+class FromIterableTextDataset(LazyDataset):
+    def __init__(
+        self,
+        tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast],
+        data_sources: Iterable[Iterable[str]],
+        block_size: int,
+        return_overflowing_tokens: bool = True,
+        process_batch_size: int = 8192,
+    ) -> None:
+        super().__init__()
+        self.return_overflowing_tokens = return_overflowing_tokens
+        self.tokenizer = tokenizer
+        self.data_sources = data_sources
+        self.block_size = block_size
+        self.process_batch_size = process_batch_size
+
+    def _read_chunk(self) -> Iterator[List[str]]:
+        lines: List[str] = []
+        for data_source in self.data_sources:
+            for line in data_source:
+                if len(line) > 0 and not line.isspace():
+                    lines.append(line)
+
+                if len(lines) == self.process_batch_size:
+                    yield lines
+                    lines = []
+        if len(lines) > 0:
+            yield lines
+
+    def __linit_entries__(self) -> Sequence[T_co]:
+        logging.info(f"Creating features from data_sources")
+        entries: List[List[Dict[str, torch.Tensor]]] = []
+        for lines in self._read_chunk():
+            entries.append(self._extract_batch(lines))
+        logging.info(f"Currently read total {sum(map(len, entries))} at end")
+        logging.info("Extracted and converted training data to `input_ids`.")
+        return list(chain.from_iterable(entries))  # type: ignore
+
+    def _extract_batch(self, lines: List[str]) -> List[Dict[str, torch.Tensor]]:
+        raise NotImplementedError()
+
+
+class GroupTextForCasualLMDataset(FromIterableTextDataset):
+    def _extract_batch(self, lines: List[str]) -> List[Dict[str, torch.Tensor]]:
+        batch_encoding: List[Dict[str, torch.Tensor]] = []
+        current_line = [self.tokenizer.bos_token]
+        for line in lines:
+            tokens = self.tokenizer.tokenize(line)
+            if len(current_line) + len(tokens) + 1 <= self.block_size:
+                current_line.append(self.tokenizer.bos_token)
+                current_line.extend(tokens)
+            elif len(current_line) == self.block_size:
+                input_ids = self.tokenizer.convert_tokens_to_ids(current_line)
+                batch_encoding.append({"input_ids": torch.tensor(input_ids), "labels": torch.tensor(input_ids)})
+                current_line = [self.tokenizer.bos_token] + tokens
+            else:
+                current_line.append(self.tokenizer.bos_token)
+                n_tokens_to_add = self.block_size - len(current_line)
+                current_line.extend(tokens[:n_tokens_to_add])
+                input_ids = self.tokenizer.convert_tokens_to_ids(current_line)
+                batch_encoding.append({"input_ids": torch.tensor(input_ids), "labels": torch.tensor(input_ids)})
+
+                tokens = tokens[n_tokens_to_add:]
+                while len(tokens) >= self.block_size:
+                    input_ids = self.tokenizer.convert_tokens_to_ids(tokens[: self.block_size])
+                    batch_encoding.append({"input_ids": torch.tensor(input_ids), "labels": torch.tensor(input_ids)})
+                    tokens = tokens[self.block_size :]
+
+                current_line = tokens
+        return batch_encoding
+
+
+class DataCollatorForGroupTextForCasualLMDataset:
+    def __call__(self, examples: List[Dict[str, torch.Tensor]]) -> Dict[str, torch.Tensor]:
+        input_ids = torch.stack([example["input_ids"] for example in examples], dim=0)
+        labels = torch.stack([example["labels"] for example in examples], dim=0)
+        return {"input_ids": input_ids, "labels": labels}
