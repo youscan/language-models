@@ -3,15 +3,22 @@ import logging
 import os
 from collections import Hashable as HashableType
 from collections import OrderedDict
-from typing import Any, Callable, Dict, Hashable, Iterable, Iterator, Optional
+from pathlib import Path
+from typing import Any, Callable, Dict, Hashable, Iterable, Iterator, Optional, Union, List, Set, Tuple
 
+import numpy as np
 from ds_shared.loading import load_pickle
 from pynlple.data.corpus import FilteringSource, JsonFieldSource, MappingSource, SplittingSource, StackingSource
 from pynlple.data.filesource import FilePathSource
 from pynlple.data.source import Source
 from pynlple.processing.preprocessor import BoldTagReplacer, IPreprocessor, StackingPreprocessor
 
+from bs4 import BeautifulSoup
+
 from ..pipeline import ITask
+
+from lsh import minhash, cache  # TODO: add installation
+
 
 MIN_TEXT_LEN = 10
 MIN_TEXT_TOKEN_LENGTH = 2
@@ -83,6 +90,22 @@ class PickleDataSource(Source):
         return iter(load_pickle(self.pickle_filepath))
 
 
+class PostWikiExtractorDataSource(Source):
+    """Provides wiki articles preprocessed by `python -m wikiextractor.WikiExtractor dump.xml.bz2 ...`"""
+    def __init__(self, article_dir: str) -> None:
+        super().__init__()
+        self.article_dir = Path(article_dir)
+
+    def __iter__(self) -> Iterator[Any]:
+        for subdir in self.article_dir.glob("*"):
+            for file in subdir.glob("*"):
+                with open(file) as f:
+                    data = f.read()
+                soup = BeautifulSoup(data, "lxml")
+                for doc in soup.find_all("doc"):
+                    yield {"id": doc["id"], "title": doc["title"], "url": doc["url"], "text": doc.text}
+
+
 class ExtractTextsFromData(ITask):
     def __init__(
         self,
@@ -138,3 +161,28 @@ class ExtractTextsFromData(ITask):
                 output_stream.write("\n")
                 lines += 1
         logging.info(f"Completed extraction of texts: {lines} lines written to file.")
+
+
+class MinHashLSHDeduplicator:
+    def __init__(self, seeds: Union[int, np.ndarray], char_ngram: int, bands: int):
+        hasher = minhash.MinHasher(seeds=seeds, char_ngram=char_ngram)
+        self.lsh_cache = cache.Cache(num_bands=bands, hasher=hasher)
+
+    def deduplicate(self, docs: List[str], min_jaccard: float, clear: bool = True) -> List[str]:
+        if clear:
+            self.lsh_cache.clear()
+
+        added = set()
+        deduplicated_docs = []
+        for i, j in self.get_all_duplicates(docs, min_jaccard):
+            if i not in added and j not in added:
+                added.add(i)
+                added.add(j)
+                deduplicated_docs.append(docs[i])
+
+        return deduplicated_docs
+
+    def get_all_duplicates(self, docs: List[str], min_jaccard: float) -> Set[Tuple[int, int]]:
+        for i, doc in enumerate(docs):
+            self.lsh_cache.add_doc(doc, i)
+        return self.lsh_cache.get_all_duplicates(min_jaccard)

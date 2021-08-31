@@ -3,3 +3,8 @@ pyNlple==0.7.5
 tokenizers==0.10.1
 torch==1.8.1
 transformers==4.4.2
+wikiextractor==3.0.4
+bs4==0.0.1
+wget==3.2
+numpy==1.19.5
+Cython==3.0.0a9
