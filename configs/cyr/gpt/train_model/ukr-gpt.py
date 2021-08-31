@@ -14,31 +14,29 @@ from language_model.tokenization.factory import FAST_TOKENIZER_DEFAULT_FILE_NAME
 
 TOKENIZER_PATH = f"outputs/cyr/gpt/train_tokenizer/ukr-gpt/{FAST_TOKENIZER_DEFAULT_FILE_NAME}"
 
-MODEL_MAX_LENGTH = 2048
+MODEL_MAX_LENGTH = 1024
 
 
 # tokenizer
 tokenizer = PreTrainedTokenizerFast(
     tokenizer_file=TOKENIZER_PATH, model_max_length=MODEL_MAX_LENGTH, padding_side="right"
 )
-tokenizer.add_special_tokens({"bos_token": "<|endoftext|>"})
+tokenizer.add_special_tokens({"bos_token": "<|endoftext|>"})  # TODO: tokenizer saving
+# basically `pad_token` wont be used, as DataCollatorForGroupTextForCasualLMDataset pack sequences up to max_length
+# but to avoid an error within DataCollatorForGroupTextForCasualLMDataset
 tokenizer.pad_token = tokenizer.bos_token
 
 # model
-model_config = GPT2Config(
-    vocab_size=len(tokenizer),
-    n_positions=MODEL_MAX_LENGTH,
-    n_ctx=MODEL_MAX_LENGTH,
-    bos_token_id=tokenizer.bos_token_id,
-)
+model_config = GPT2Config(vocab_size=len(tokenizer), bos_token_id=tokenizer.bos_token_id)
 model = GPT2LMHeadModel(model_config)
 
 
-# data
+# data  # TODO
 # oscar_train = (item["text"] for item in load_dataset("oscar", "unshuffled_deduplicated_uk", split="train"))
 # mc4_train = (item["text"] for item in load_dataset("mc4", "uk", split="train"))
 # cc100_train = (item["text"] for item in load_dataset("cc100", "uk", split="train"))
 # mc4_valid = (item["text"] for item in load_dataset("mc4", "uk", split="validation"))
+# wiki_train = (item["text"] for item in PostWikiExtractorDataSource(WIKI_EXTRACTED_PATH))
 
 oscar_train = (item["text"] for item in load_dataset("oscar", "unshuffled_deduplicated_uk", split="train[:5000]"))
 oscar_valid = (item["text"] for item in load_dataset("oscar", "unshuffled_deduplicated_uk", split="train[5000:10000]"))
