@@ -132,7 +132,7 @@ class FromIterableTextDataset(LazyDataset):
     def __init__(
         self,
         tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast],
-        data_sources: Iterable[Iterable[str]],
+        data_source: Iterable[str],
         block_size: int,
         return_overflowing_tokens: bool = True,
         process_batch_size: int = 8192,
@@ -140,20 +140,19 @@ class FromIterableTextDataset(LazyDataset):
         super().__init__()
         self.return_overflowing_tokens = return_overflowing_tokens
         self.tokenizer = tokenizer
-        self.data_sources = data_sources
+        self.data_source = data_source
         self.block_size = block_size
         self.process_batch_size = process_batch_size
 
     def _read_chunk(self) -> Iterator[List[str]]:
         lines: List[str] = []
-        for data_source in self.data_sources:
-            for line in data_source:
-                if len(line) > 0 and not line.isspace():
-                    lines.append(line)
+        for line in self.data_source:
+            if len(line) > 0 and not line.isspace():
+                lines.append(line)
 
-                if len(lines) == self.process_batch_size:
-                    yield lines
-                    lines = []
+            if len(lines) == self.process_batch_size:
+                yield lines
+                lines = []
         if len(lines) > 0:
             yield lines
 
