@@ -16,7 +16,7 @@ def write_to_texts_file(texts: Iterable[str], environment_path: str) -> None:
     logging.info(f"Completed extraction of texts: {lines} lines written to file.")
 
 
-def write_to_train_val_files(texts: Iterable[str], environment_path: str, test_ratio: float, test_size: int):
+def write_to_train_val_files(texts: Iterable[str], environment_path: str, test_ratio: float, test_size: int) -> None:
     train_file_path = os.path.join(environment_path, "train.txt")
     validation_file_path = os.path.join(environment_path, "validation.txt")
     train_lines = 0

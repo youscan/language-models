@@ -37,7 +37,7 @@ model = GPT2LMHeadModel(model_config)
 # data
 train_data_source = ShuffledSources(
     (text for text in LineByLineSource(IN_HOUSE_TRAIN_DATA_PATH)),
-    (text for text in LineByLineSource(OPEN_TRAIN_DATA_PATH))
+    (text for text in LineByLineSource(OPEN_TRAIN_DATA_PATH)),
 )
 validation_data_path = LineByLineSource(VALIDATION_DATA_PATH)
 

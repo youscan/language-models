@@ -1,9 +1,9 @@
 from pynlple.processing.preprocessor import (
-    StackingPreprocessor,
     HtmlTagReplacer,
-    URLReplacer,
-    MultiNonLetterReplacer,
     MultiLetterReplacer,
+    MultiNonLetterReplacer,
+    StackingPreprocessor,
+    URLReplacer,
 )
 
 from language_model.data.extract import ExtractTextsFromData, FromLoadedYsDataSource
@@ -12,12 +12,7 @@ YS_FOLDER_PATHS = ["outputs/cyr/gpt/load_data/in-house"]
 
 
 preprocessor = StackingPreprocessor(
-    [
-        HtmlTagReplacer(),
-        URLReplacer(),
-        MultiNonLetterReplacer(include_digits=False),
-        MultiLetterReplacer()
-    ]
+    [HtmlTagReplacer(), URLReplacer(), MultiNonLetterReplacer(include_digits=False), MultiLetterReplacer()]
 )
 
 ys_train = FromLoadedYsDataSource(source_folder_paths=YS_FOLDER_PATHS)

@@ -7,19 +7,20 @@ from collections import OrderedDict
 from concurrent.futures import ProcessPoolExecutor
 from itertools import islice
 from pathlib import Path
-from typing import Any, Callable, Dict, Hashable, Iterable, Iterator, Optional, Union, List, Set, Tuple, Generator
+from typing import Any, Callable, Dict, Generator, Hashable, Iterable, Iterator, List, Optional, Set, Tuple, Union
 
 import numpy as np
 from bs4 import BeautifulSoup
 from ds_shared.loading import load_pickle
-from lsh import minhash, cache
 from pynlple.data.corpus import FilteringSource, JsonFieldSource, MappingSource, StackingSource
 from pynlple.data.filesource import FilePathSource
 from pynlple.data.source import Source
 from pynlple.processing.preprocessor import IPreprocessor
 
-from .utils import write_to_texts_file, write_to_train_val_files
+from lsh import cache, minhash
+
 from ..pipeline import ITask
+from .utils import write_to_texts_file, write_to_train_val_files
 
 MIN_TEXT_LEN = 10
 MIN_TEXT_TOKEN_LENGTH = 2
@@ -124,6 +125,7 @@ class PickleDataSource(Source):
 
 class PostWikiExtractorDataSource(Source):
     """Provides wiki articles preprocessed by `python -m wikiextractor.WikiExtractor dump.xml.bz2 ...`"""
+
     def __init__(self, article_dir: str) -> None:
         super().__init__()
         self.article_dir = Path(article_dir)
@@ -169,7 +171,7 @@ class MinHashLSHDeduplicator:
         if clear:
             self.lsh_cache.clear()
 
-        duplicate_ids = set()
+        duplicate_ids: Set[int] = set()
         keep_form_duplicate_ids = set()
         for i, j in self.get_all_duplicates(docs, min_jaccard):
             if i not in duplicate_ids and j not in duplicate_ids:
@@ -200,7 +202,7 @@ class MinHashLSHDeduplicator:
         yield from batch_docs
 
     def lsh_batch_deduplicate(
-            self, docs: Iterable[str], min_jaccard: float, batch_size: int, clear: bool = True
+        self, docs: Iterable[str], min_jaccard: float, batch_size: int, clear: bool = True
     ) -> Iterable[str]:
         """
         batch_size: max size of docs will be deduplicated at time, while `batch_docs` list will be extended
@@ -210,7 +212,8 @@ class MinHashLSHDeduplicator:
             self.lsh_cache.clear()
 
         start_id, end_id = 0, batch_size
-        duplicate_ids, keep_form_duplicate_ids = set(), set()
+        keep_form_duplicate_ids: Set[int] = set()
+        duplicate_ids: Set[int] = set()
 
         batch_docs = list(islice(docs, batch_size))
 
@@ -260,8 +263,7 @@ class MinHashLSHDeduplicator:
 
     def get_all_duplicates(self, docs: Iterable[str], min_jaccard: float, start_id: int = 0) -> Set[Tuple[int, int]]:
         self._cache_texts_parallel(docs, start_id=start_id)
-        import pdb; pdb.set_trace()
-        return self.lsh_cache.get_all_duplicates(min_jaccard)
+        return self.lsh_cache.get_all_duplicates(min_jaccard)  # type: ignore
 
     def _cache_texts(self, docs: Iterable[str], start_id: int = 0) -> None:
         for i, doc in enumerate(docs, start_id):
@@ -281,7 +283,7 @@ class ExtractTextsFromData(ITask):
         preprocessor: Optional[IPreprocessor] = None,
         min_text_length: int = MIN_TEXT_LEN,
         min_text_token_length: int = MIN_TEXT_TOKEN_LENGTH,
-        cache_size: int = 100_000
+        cache_size: int = 100_000,
     ) -> None:
         super().__init__()
         self.preprocessor = preprocessor
@@ -293,10 +295,12 @@ class ExtractTextsFromData(ITask):
     def execute(self, environment_path: str) -> None:
         self._write_to_file(self._deduplicate(self._filter(self._preprocess())), environment_path=environment_path)
 
-    def _preprocess(self) -> Source:
-        return MappingSource(self.text_source, function=self.preprocessor.preprocess)
+    def _preprocess(self) -> Union[Source, Iterable[str]]:
+        if self.preprocessor is not None:
+            return MappingSource(self.text_source, function=self.preprocessor.preprocess)
+        return self.text_source
 
-    def _filter(self, preprocessed_source: Source) -> Source:
+    def _filter(self, preprocessed_source: Union[Source, Iterable[str]]) -> Source:
         return FilteringSource(
             preprocessed_source,
             condition=lambda x: len(x) >= self.min_text_length and len(x.split()) >= self.min_text_token_length,
@@ -325,19 +329,21 @@ class ExtractTextsFromData(ITask):
 
 class RandomSplitTextsFromData(ExtractTextsFromData):
     def __init__(
-            self,
-            text_source: Iterable[str],
-            preprocessor: Optional[IPreprocessor] = None,
-            min_text_length: int = MIN_TEXT_LEN,
-            min_text_token_length: int = MIN_TEXT_TOKEN_LENGTH,
-            seeds: Union[int, np.ndarray] = 100,
-            test_size: Union[float, int] = 0.1
+        self,
+        text_source: Iterable[str],
+        preprocessor: Optional[IPreprocessor] = None,
+        min_text_length: int = MIN_TEXT_LEN,
+        min_text_token_length: int = MIN_TEXT_TOKEN_LENGTH,
+        seeds: Union[int, np.ndarray] = 100,
+        test_size: Union[float, int] = 0.1,
     ) -> None:
-        super().__init__(text_source, preprocessor, min_text_length, min_text_token_length, seeds,)
+        super().__init__(text_source, preprocessor, min_text_length, min_text_token_length, seeds)
         # if test_size > 1 (absolute number) there is a probability that we won't reach this number
         # if size of full dataset is twice less or approximately equal than test_size
         self.test_ratio = 0.5 if test_size > 1 else test_size
         self.test_size = test_size if test_size > 1 else float("inf")
 
     def _write_to_file(self, texts: Iterable[str], environment_path: str) -> None:
-        return write_to_train_val_files(texts, environment_path, test_ratio=self.test_ratio, test_size=self.test_size)
+        return write_to_train_val_files(
+            texts, environment_path, test_ratio=self.test_ratio, test_size=self.test_size  # type: ignore
+        )

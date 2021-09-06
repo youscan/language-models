@@ -30,11 +30,11 @@ class TransformersTrainTask(ITask):
 
 class TransformersTrainTaskWithTokenizerSaving(TransformersTrainTask):
     def __init__(
-            self,
-            trainer: Trainer,
-            checkpoint_folder: Optional[str] = None,
-            model_folder_name: str = "model",
-            tokenizer_folder_name: str = "tokenizer",
+        self,
+        trainer: Trainer,
+        checkpoint_folder: Optional[str] = None,
+        model_folder_name: str = "model",
+        tokenizer_folder_name: str = "tokenizer",
     ):
         super().__init__(trainer, checkpoint_folder, model_folder_name)
         self.tokenizer_folder_name = tokenizer_folder_name

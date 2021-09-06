@@ -2,11 +2,11 @@ from itertools import chain
 
 from datasets import load_dataset
 from pynlple.processing.preprocessor import (
-    StackingPreprocessor,
     HtmlTagReplacer,
-    URLReplacer,
-    MultiNonLetterReplacer,
     MultiLetterReplacer,
+    MultiNonLetterReplacer,
+    StackingPreprocessor,
+    URLReplacer,
 )
 
 from language_model.data.extract import PostWikiExtractorDataSource, RandomSplitTextsFromData
@@ -15,12 +15,7 @@ WIKI_EXTRACTED_PATH = "outputs/cyr/gpt/load_data/wiki/ukwiki-latest-pages-articl
 
 
 preprocessor = StackingPreprocessor(
-    [
-        HtmlTagReplacer(),
-        URLReplacer(),
-        MultiNonLetterReplacer(include_digits=False),
-        MultiLetterReplacer()
-    ]
+    [HtmlTagReplacer(), URLReplacer(), MultiNonLetterReplacer(include_digits=False), MultiLetterReplacer()]
 )
 
 oscar_train = (item["text"] for item in load_dataset("oscar", "unshuffled_deduplicated_uk", split="train"))

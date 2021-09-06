@@ -20,8 +20,4 @@ train_data_source = islice(
 )
 trainer = trainers.BpeTrainer(vocab_size=50264, special_tokens=["<|endoftext|>"])
 
-task = TrainTokenizerTask(
-    tokenizer=tokenizer,
-    iterator=train_data_source,
-    trainer=trainer,
-)
+task = TrainTokenizerTask(tokenizer=tokenizer, iterator=train_data_source, trainer=trainer)
