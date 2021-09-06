@@ -8,3 +8,4 @@ bs4==0.0.1
 wget==3.2
 numpy==1.19.5
 Cython==3.0.0a9
+lxml==4.6.3

@@ -1,4 +1,3 @@
-from datasets import load_dataset
 from transformers import (
     GPT2Config,
     GPT2LMHeadModel,
@@ -9,11 +8,15 @@ from transformers import (
 )
 
 from language_model.data.dataset import DataCollatorForGroupTextForCasualLMDataset, GroupTextForCasualLMDataset
-from language_model.modelling.trainer import TransformersTrainTask
+from language_model.data.extract import LineByLineSource, ShuffledSources
+from language_model.modelling.trainer import TransformersTrainTaskWithTokenizerSaving
 from language_model.tokenization.factory import FAST_TOKENIZER_DEFAULT_FILE_NAME
 
 TOKENIZER_PATH = f"outputs/cyr/gpt/train_tokenizer/ukr-gpt/{FAST_TOKENIZER_DEFAULT_FILE_NAME}"
 
+IN_HOUSE_TRAIN_DATA_PATH = "outputs/cyr/gpt/extract_texts/in-house-data/texts.txt"
+OPEN_TRAIN_DATA_PATH = "outputs/cyr/gpt/extract_texts/train-validation-open-data/train_shuffled.txt"
+VALIDATION_DATA_PATH = "outputs/cyr/gpt/extract_texts/train-validation-open-data/validation.txt"
 MODEL_MAX_LENGTH = 1024
 
 
@@ -21,7 +24,7 @@ MODEL_MAX_LENGTH = 1024
 tokenizer = PreTrainedTokenizerFast(
     tokenizer_file=TOKENIZER_PATH, model_max_length=MODEL_MAX_LENGTH, padding_side="right"
 )
-tokenizer.add_special_tokens({"bos_token": "<|endoftext|>"})  # TODO: tokenizer saving
+tokenizer.add_special_tokens({"bos_token": "<|endoftext|>"})
 # basically `pad_token` wont be used, as DataCollatorForGroupTextForCasualLMDataset pack sequences up to max_length
 # but to avoid an error within DataCollatorForGroupTextForCasualLMDataset
 tokenizer.pad_token = tokenizer.bos_token
@@ -31,42 +34,37 @@ model_config = GPT2Config(vocab_size=len(tokenizer), bos_token_id=tokenizer.bos_
 model = GPT2LMHeadModel(model_config)
 
 
-# data  # TODO
-# oscar_train = (item["text"] for item in load_dataset("oscar", "unshuffled_deduplicated_uk", split="train"))
-# mc4_train = (item["text"] for item in load_dataset("mc4", "uk", split="train"))
-# cc100_train = (item["text"] for item in load_dataset("cc100", "uk", split="train"))
-# mc4_valid = (item["text"] for item in load_dataset("mc4", "uk", split="validation"))
-# wiki_train = (item["text"] for item in PostWikiExtractorDataSource(WIKI_EXTRACTED_PATH))
-
-oscar_train = (item["text"] for item in load_dataset("oscar", "unshuffled_deduplicated_uk", split="train[:5000]"))
-oscar_valid = (item["text"] for item in load_dataset("oscar", "unshuffled_deduplicated_uk", split="train[5000:10000]"))
+# data
+train_data_source = ShuffledSources(
+    (text for text in LineByLineSource(IN_HOUSE_TRAIN_DATA_PATH)),
+    (text for text in LineByLineSource(OPEN_TRAIN_DATA_PATH))
+)
+validation_data_path = LineByLineSource(VALIDATION_DATA_PATH)
 
 train_dataset = GroupTextForCasualLMDataset(
-    tokenizer=tokenizer, data_sources=[oscar_train], block_size=MODEL_MAX_LENGTH
+    tokenizer=tokenizer, data_source=train_data_source, block_size=MODEL_MAX_LENGTH
 )
 valid_dataset = GroupTextForCasualLMDataset(
-    tokenizer=tokenizer, data_sources=[oscar_valid], block_size=MODEL_MAX_LENGTH
+    tokenizer=tokenizer, data_source=validation_data_path, block_size=MODEL_MAX_LENGTH
 )
 data_collator = DataCollatorForGroupTextForCasualLMDataset()
 
-# train-iters 500000
-# batch per gpu 4, grad acc 4, whole batch 256 samples == 512k tokens
 
 training_args = TrainingArguments(
     do_train=True,
     do_eval=True,
     evaluation_strategy=IntervalStrategy.STEPS,
     eval_steps=250000,
-    num_train_epochs=3,
-    per_device_train_batch_size=4,
-    gradient_accumulation_steps=4,
+    num_train_epochs=5,
+    per_device_train_batch_size=8,  # overall bs = 8 * 8 * num_gpus (GPT2 used 512)
+    gradient_accumulation_steps=8,
     per_device_eval_batch_size=4,
     output_dir="temp",
     overwrite_output_dir=True,
     save_steps=250000,
     save_total_limit=2,
     prediction_loss_only=False,
-    learning_rate=5e-5,
+    learning_rate=0.0002,  # (was manually tuned in GPT2 on held-out validation)
     warmup_ratio=0.004,
     fp16=True,
     logging_dir="logs",
@@ -77,7 +75,7 @@ training_args = TrainingArguments(
     label_names=["labels"],
     load_best_model_at_end=True,
     group_by_length=False,
-    report_to=["mlflow"],  # ???
+    report_to=["mlflow"],
 )
 
 trainer = Trainer(
@@ -88,5 +86,4 @@ trainer = Trainer(
     data_collator=data_collator,
 )
 
-print("task")
-task = TransformersTrainTask(trainer=trainer)
+task = TransformersTrainTaskWithTokenizerSaving(trainer=trainer)

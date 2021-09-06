@@ -9,6 +9,12 @@ pip install -r requirements.dev.txt
   pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./
 )
 
+(
+  git clone https://github.com/mattilyra/LSH || { echo "Failed to download and install LSH"; exit 1; }
+  cd LSH && \
+  python setup.py install
+)
+
 pip install -e .
 
 pre-commit install
