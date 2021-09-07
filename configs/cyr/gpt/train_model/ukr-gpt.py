@@ -12,11 +12,17 @@ from language_model.data.extract import LineByLineSource, ShuffledSources
 from language_model.modelling.trainer import TransformersTrainTaskWithTokenizerSaving
 from language_model.tokenization.factory import FAST_TOKENIZER_DEFAULT_FILE_NAME
 
-TOKENIZER_PATH = f"outputs/cyr/gpt/train_tokenizer/ukr-gpt/{FAST_TOKENIZER_DEFAULT_FILE_NAME}"
+TOKENIZER_PATH = (
+    f"/mnt/lost+found/language-models/outputs/cyr/gpt/train_tokenizer/ukr-gpt/{FAST_TOKENIZER_DEFAULT_FILE_NAME}"
+)
 
-IN_HOUSE_TRAIN_DATA_PATH = "outputs/cyr/gpt/extract_texts/in-house-data/texts.txt"
-OPEN_TRAIN_DATA_PATH = "outputs/cyr/gpt/extract_texts/train-validation-open-data/train_shuffled.txt"
-VALIDATION_DATA_PATH = "outputs/cyr/gpt/extract_texts/train-validation-open-data/validation.txt"
+IN_HOUSE_TRAIN_DATA_PATH = "/mnt/lost+found/language-models/outputs/cyr/gpt/extract_texts/in-house-data/texts.txt"
+OPEN_TRAIN_DATA_PATH = (
+    "/mnt/lost+found/language-models/outputs/cyr/gpt/extract_texts/train-validation-open-data/train_shuffled.txt"
+)
+VALIDATION_DATA_PATH = (
+    "/mnt/lost+found/language-models/outputs/cyr/gpt/extract_texts/train-validation-open-data/validation.txt"
+)
 MODEL_MAX_LENGTH = 1024
 
 
@@ -59,10 +65,10 @@ training_args = TrainingArguments(
     per_device_train_batch_size=8,  # overall bs = 8 * 8 * num_gpus (GPT2 used 512)
     gradient_accumulation_steps=8,
     per_device_eval_batch_size=4,
-    output_dir="temp",
-    overwrite_output_dir=True,
+    output_dir="checkpoints",
+    overwrite_output_dir=False,
     save_steps=250000,
-    save_total_limit=2,
+    save_total_limit=10,
     prediction_loss_only=False,
     learning_rate=0.0002,  # (was manually tuned in GPT2 on held-out validation)
     warmup_ratio=0.004,
