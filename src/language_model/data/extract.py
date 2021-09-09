@@ -6,13 +6,13 @@ import random
 from collections import Hashable as HashableType
 from collections import OrderedDict
 from concurrent.futures import ProcessPoolExecutor
+from math import ceil
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Hashable, Iterable, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 from bs4 import BeautifulSoup
 from ds_shared.loading import load_pickle
-from math import ceil
 from more_itertools import chunked
 from pynlple.data.corpus import FilteringSource, JsonFieldSource, MappingSource, StackingSource
 from pynlple.data.filesource import FilePathSource
@@ -20,8 +20,8 @@ from pynlple.data.source import Source
 from pynlple.processing.preprocessor import IPreprocessor
 from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
 
-from .utils import write_to_texts_file, write_to_train_val_files
 from ..pipeline import ITask
+from .utils import write_to_texts_file, write_to_train_val_files
 
 MIN_TEXT_LEN = 10
 MIN_TEXT_TOKEN_LENGTH = 2
@@ -237,12 +237,12 @@ class RandomSplitTextsFromData(ExtractTextsFromData):
 
 class ExtractVectorsFromTexts(ITask):
     def __init__(
-            self,
-            data_source: Iterable[str],
-            tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast],
-            block_size: int,
-            workers: int = -1,
-            process_batch_size: int = 8192,
+        self,
+        data_source: Iterable[str],
+        tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast],
+        block_size: int,
+        workers: int = -1,
+        process_batch_size: int = 8192,
     ):
         self.workers = multiprocessing.cpu_count() if workers == -1 else workers
         self.tokenizer = tokenizer
@@ -251,7 +251,7 @@ class ExtractVectorsFromTexts(ITask):
         self.process_batch_size = process_batch_size
 
     def execute(self, environment_path: str) -> None:
-        input_ids_file = os.path.join(environment_path, f"processed_batch.jsonl")
+        input_ids_file = os.path.join(environment_path, "processed_batch.jsonl")
         if os.path.exists(input_ids_file):
             raise FileExistsError(f"{input_ids_file} already exists")
 
@@ -284,7 +284,7 @@ class ExtractVectorsFromTexts(ITask):
 
     @staticmethod
     def _extract_batch(
-            args: Tuple[List[str], Union[PreTrainedTokenizer, PreTrainedTokenizerFast], int]
+        args: Tuple[List[str], Union[PreTrainedTokenizer, PreTrainedTokenizerFast], int]
     ) -> List[List[int]]:
         lines, tokenizer, block_size = args
         batch_encoding: List[List[int]] = []
@@ -307,7 +307,7 @@ class ExtractVectorsFromTexts(ITask):
 
                 tokens = tokens[n_tokens_to_add:]
                 while len(tokens) >= block_size:
-                    input_ids = tokenizer.convert_tokens_to_ids(tokens[: block_size])
+                    input_ids = tokenizer.convert_tokens_to_ids(tokens[:block_size])
                     batch_encoding.append(input_ids)
                     tokens = tokens[block_size:]
 

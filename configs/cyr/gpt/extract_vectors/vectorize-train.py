@@ -2,7 +2,7 @@ import os
 
 from transformers import PreTrainedTokenizerFast
 
-from language_model.data.extract import LineByLineSource, ShuffledSources, ExtractVectorsFromTexts
+from language_model.data.extract import ExtractVectorsFromTexts, LineByLineSource, ShuffledSources
 
 TOKENIZER_PATH = "outputs/cyr/gpt/train_tokenizer/convert-to-transformers/tokenizer/"
 
@@ -23,5 +23,5 @@ task = ExtractVectorsFromTexts(
     tokenizer=PreTrainedTokenizerFast.from_pretrained(TOKENIZER_PATH),
     block_size=MODEL_MAX_LENGTH,
     process_batch_size=100_000,
-    workers=18
+    workers=18,
 )

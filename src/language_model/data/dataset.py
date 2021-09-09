@@ -1,10 +1,10 @@
 import itertools
 import json
 import logging
+import math
 from itertools import chain
 from typing import Dict, Iterable, Iterator, List, Optional, Sequence
 
-import math
 import torch
 from torch._utils import _accumulate
 from torch.utils.data import Dataset
@@ -130,8 +130,7 @@ def split_lazy_dataset(dataset: LazyDataset, portions: Sequence[float]) -> List[
 
 
 class FromInputIdsDataset(LazyDataset):
-
-    def __init__(self, input_ids_file_path: str, ):
+    def __init__(self, input_ids_file_path: str):
         super(FromInputIdsDataset, self).__init__()
         self.input_ids_file_path = input_ids_file_path
 
@@ -147,7 +146,7 @@ class FromInputIdsDataset(LazyDataset):
         return input_ids_list
 
     def __linit_entries__(self) -> Sequence[T_co]:
-        logging.info(f"Start reading input ids")
+        logging.info("Start reading input ids")
         entries = self._read_input_ids()
         logging.info("input ids have been read")
         return entries

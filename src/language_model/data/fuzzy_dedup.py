@@ -2,9 +2,10 @@ import gc
 import multiprocessing
 from concurrent.futures import ProcessPoolExecutor
 from itertools import islice
-from typing import Iterable, List, Tuple, Union, Set
+from typing import Iterable, List, Set, Tuple, Union
 
 import numpy as np
+
 try:
     from lsh import cache, minhash
 except ImportError:
