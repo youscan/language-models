@@ -7,52 +7,32 @@ from transformers import (
     TrainingArguments,
 )
 
-from language_model.data.dataset import DataCollatorForGroupTextForCasualLMDataset, GroupTextForCasualLMDataset
-from language_model.data.extract import LineByLineSource, ShuffledSources
+from language_model.data.dataset import DataCollatorForGroupTextForCasualLMDataset, FromInputIdsDataset
 from language_model.modelling.trainer import TransformersTrainTaskWithTokenizerSaving
-from language_model.tokenization.factory import FAST_TOKENIZER_DEFAULT_FILE_NAME
 
 TOKENIZER_PATH = (
-    f"/mnt/lost+found/language-models/outputs/cyr/gpt/train_tokenizer/ukr-gpt/{FAST_TOKENIZER_DEFAULT_FILE_NAME}"
+    f"/mnt/lost+found/language-models/outputs/cyr/gpt/train_tokenizer/convert-to-transformers/tokenizer/"
 )
 
-IN_HOUSE_TRAIN_DATA_PATH = "/mnt/lost+found/language-models/outputs/cyr/gpt/extract_texts/in-house-data/texts.txt"
-OPEN_TRAIN_DATA_PATH = (
-    "/mnt/lost+found/language-models/outputs/cyr/gpt/extract_texts/train-validation-open-data/train_shuffled.txt"
+TRAIN_IDS_PATH = (
+    "/mnt/lost+found/language-models/outputs/cyr/gpt/extract_texts/vectorize-train/processed_batch.jsonl"
 )
-VALIDATION_DATA_PATH = (
-    "/mnt/lost+found/language-models/outputs/cyr/gpt/extract_texts/train-validation-open-data/validation.txt"
+VALIDATION_IDS_PATH = (
+    "/mnt/lost+found/language-models/outputs/cyr/gpt/extract_texts/vectorize-validation/processed_batch.jsonl"
 )
 MODEL_MAX_LENGTH = 1024
 
 
 # tokenizer
-tokenizer = PreTrainedTokenizerFast(
-    tokenizer_file=TOKENIZER_PATH, model_max_length=MODEL_MAX_LENGTH, padding_side="right"
-)
-tokenizer.add_special_tokens({"bos_token": "<|endoftext|>"})
-# basically `pad_token` wont be used, as DataCollatorForGroupTextForCasualLMDataset pack sequences up to max_length
-# but to avoid an error within DataCollatorForGroupTextForCasualLMDataset
-tokenizer.pad_token = tokenizer.bos_token
-
+tokenizer = PreTrainedTokenizerFast.from_pretrained(TOKENIZER_PATH)
 # model
 model_config = GPT2Config(vocab_size=len(tokenizer), bos_token_id=tokenizer.bos_token_id)
 model = GPT2LMHeadModel(model_config)
 
 
 # data
-train_data_source = ShuffledSources(
-    (text for text in LineByLineSource(IN_HOUSE_TRAIN_DATA_PATH)),
-    (text for text in LineByLineSource(OPEN_TRAIN_DATA_PATH)),
-)
-validation_data_path = LineByLineSource(VALIDATION_DATA_PATH)
-
-train_dataset = GroupTextForCasualLMDataset(
-    tokenizer=tokenizer, data_source=train_data_source, block_size=MODEL_MAX_LENGTH
-)
-valid_dataset = GroupTextForCasualLMDataset(
-    tokenizer=tokenizer, data_source=validation_data_path, block_size=MODEL_MAX_LENGTH
-)
+train_dataset = FromInputIdsDataset(TRAIN_IDS_PATH)
+valid_dataset = FromInputIdsDataset(VALIDATION_IDS_PATH)
 data_collator = DataCollatorForGroupTextForCasualLMDataset()
 
 

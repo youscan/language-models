@@ -1,27 +1,27 @@
-import gc
+import json
 import logging
 import multiprocessing
+import os
 import random
 from collections import Hashable as HashableType
 from collections import OrderedDict
 from concurrent.futures import ProcessPoolExecutor
-from itertools import islice
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Hashable, Iterable, Iterator, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, Generator, Hashable, Iterable, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 from bs4 import BeautifulSoup
 from ds_shared.loading import load_pickle
+from math import ceil
+from more_itertools import chunked
 from pynlple.data.corpus import FilteringSource, JsonFieldSource, MappingSource, StackingSource
 from pynlple.data.filesource import FilePathSource
 from pynlple.data.source import Source
 from pynlple.processing.preprocessor import IPreprocessor
+from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
 
-from ..pipeline import ITask
 from .utils import write_to_texts_file, write_to_train_val_files
-
-# from lsh import cache, minhash
-
+from ..pipeline import ITask
 
 MIN_TEXT_LEN = 10
 MIN_TEXT_TOKEN_LENGTH = 2
@@ -162,121 +162,6 @@ class FromLoadedYsDataSource(Source):
             yield from text_source
 
 
-# class MinHashLSHDeduplicator:
-#     def __init__(self, seeds: Union[int, np.ndarray], char_ngram: int, bands: int, workers: int = -1):
-#         self.workers = multiprocessing.cpu_count() if workers == -1 else workers
-#         hasher = minhash.MinHasher(seeds=seeds, char_ngram=char_ngram, random_state=42)
-#         self.lsh_cache = cache.Cache(num_bands=bands, hasher=hasher)
-#
-#     def deduplicate(self, docs: List[str], min_jaccard: float, clear: bool = True) -> List[str]:
-#         if clear:
-#             self.lsh_cache.clear()
-#
-#         duplicate_ids: Set[int] = set()
-#         keep_form_duplicate_ids = set()
-#         for i, j in self.get_all_duplicates(docs, min_jaccard):
-#             if i not in duplicate_ids and j not in duplicate_ids:
-#                 keep_form_duplicate_ids.add(i)
-#             elif i in keep_form_duplicate_ids and j in keep_form_duplicate_ids:
-#                 keep_form_duplicate_ids.remove(j)
-#             duplicate_ids.add(i)
-#             duplicate_ids.add(j)
-#
-#         keep = set(range(len(docs))) - duplicate_ids | keep_form_duplicate_ids
-#
-#         return [docs[i] for i in keep]
-#
-#     def in_memory_batch_deduplicate(self, docs: Iterable[str], min_jaccard: float, batch_size: int) -> Iterable[str]:
-#         batch_docs = list(islice(docs, batch_size))
-#         while batch_docs:
-#             batch_docs = self.deduplicate(batch_docs, min_jaccard=min_jaccard, clear=True)
-#             gc.collect()
-#             add_into_batch = batch_size - len(batch_docs)
-#             if add_into_batch > 0:
-#                 new_docs = list(islice(docs, add_into_batch))
-#                 if not new_docs:
-#                     break
-#                 batch_docs.extend(new_docs)
-#             else:
-#                 yield from batch_docs
-#                 batch_docs = list(islice(docs, batch_size))
-#         yield from batch_docs
-#
-#     def lsh_batch_deduplicate(
-#         self, docs: Iterable[str], min_jaccard: float, batch_size: int, clear: bool = True
-#     ) -> Iterable[str]:
-#         """
-#         batch_size: max size of docs will be deduplicated at time, while `batch_docs` list will be extended
-#             until `batch_size` unique docs will be collected into it
-#         """
-#         if clear:
-#             self.lsh_cache.clear()
-#
-#         start_id, end_id = 0, batch_size
-#         keep_form_duplicate_ids: Set[int] = set()
-#         duplicate_ids: Set[int] = set()
-#
-#         batch_docs = list(islice(docs, batch_size))
-#
-#         while batch_docs:
-#
-#             new_duplicate_ids = set()
-#             # batch_docs[start_id:] to process just recently appended docs,
-#             # start_id = start_id to set new ids for recently appended docs
-#             for i, j in self.get_all_duplicates(batch_docs[start_id:], min_jaccard, start_id=start_id):
-#                 if i not in duplicate_ids and j not in duplicate_ids:
-#                     keep_form_duplicate_ids.add(i)
-#                 elif i in keep_form_duplicate_ids and j in keep_form_duplicate_ids:
-#                     keep_form_duplicate_ids.remove(j)
-#                 duplicate_ids.add(i)
-#                 duplicate_ids.add(j)
-#                 new_duplicate_ids.add(i)
-#                 new_duplicate_ids.add(j)
-#
-#             # new_duplicate_ids - to clear duplicates from recently appended
-#             # docs, as previous duplicate ids have already cleared
-#             drop_ids = new_duplicate_ids - keep_form_duplicate_ids
-#
-#             if drop_ids:
-#                 for i in drop_ids:
-#                     self.lsh_cache.remove_id(i)
-#
-#                 start_id = end_id
-#                 end_id = start_id + len(drop_ids)
-#             else:
-#                 # all non duplicated + keep_form_duplicate_ids
-#                 for i in set(range(len(batch_docs))) - duplicate_ids | keep_form_duplicate_ids:
-#                     yield batch_docs[i]
-#
-#                 # new batch
-#                 self.lsh_cache.clear()
-#                 start_id, end_id = 0, batch_size
-#                 duplicate_ids, keep_form_duplicate_ids = set(), set()
-#                 batch_docs = []
-#
-#             # if drop_ids: we append next len(drop_ids) examples
-#             batch_docs.extend(islice(docs, end_id - start_id))
-#
-#         if batch_docs:
-#             # all non duplicated + keep_form_duplicate_ids
-#             for i in set(range(len(batch_docs))) - duplicate_ids | keep_form_duplicate_ids:
-#                 yield batch_docs[i]
-#
-#     def get_all_duplicates(self, docs: Iterable[str], min_jaccard: float, start_id: int = 0) -> Set[Tuple[int, int]]:
-#         self._cache_texts_parallel(docs, start_id=start_id)
-#         return self.lsh_cache.get_all_duplicates(min_jaccard)  # type: ignore
-#
-#     def _cache_texts(self, docs: Iterable[str], start_id: int = 0) -> None:
-#         for i, doc in enumerate(docs, start_id):
-#             self.lsh_cache.add_doc(doc, i)
-#
-#     def _cache_texts_parallel(self, docs: Iterable[str], start_id: int = 0) -> None:
-#         encoded_docs = (doc.encode("utf8") for doc in docs)
-#         with ProcessPoolExecutor(max_workers=self.workers) as executor:
-#             for i, fingerprint in enumerate(executor.map(self.lsh_cache.hasher.fingerprint, encoded_docs), start_id):
-#                 self.lsh_cache.add_fingerprint(fingerprint, i)
-
-
 class ExtractTextsFromData(ITask):
     def __init__(
         self,
@@ -348,3 +233,83 @@ class RandomSplitTextsFromData(ExtractTextsFromData):
         return write_to_train_val_files(
             texts, environment_path, test_ratio=self.test_ratio, test_size=self.test_size  # type: ignore
         )
+
+
+class ExtractVectorsFromTexts(ITask):
+    def __init__(
+            self,
+            data_source: Iterable[str],
+            tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast],
+            block_size: int,
+            workers: int = -1,
+            process_batch_size: int = 8192,
+    ):
+        self.workers = multiprocessing.cpu_count() if workers == -1 else workers
+        self.tokenizer = tokenizer
+        self.block_size = block_size
+        self.data_source = data_source
+        self.process_batch_size = process_batch_size
+
+    def execute(self, environment_path: str) -> None:
+        input_ids_file = os.path.join(environment_path, f"processed_batch.jsonl")
+        if os.path.exists(input_ids_file):
+            raise FileExistsError(f"{input_ids_file} already exists")
+
+        counter = 1
+        for lines in self._read_chunk():
+            batch_size = ceil(len(lines) / self.workers)
+            batched_lines = chunked(lines, batch_size)
+            extract_batch_args = ((batch_lines, self.tokenizer, self.block_size) for batch_lines in batched_lines)
+
+            with open(input_ids_file, "a") as fp:
+                with ProcessPoolExecutor(max_workers=self.workers) as executor:
+                    for batch in executor.map(self._extract_batch, extract_batch_args):
+                        for input_ids in batch:
+                            fp.write(json.dumps(input_ids))
+                            fp.write("\n")
+            logging.info(f"Currently extracted {counter} batches of size {self.process_batch_size}")
+            counter += 1
+
+    def _read_chunk(self) -> Iterator[List[str]]:
+        lines: List[str] = []
+        for line in self.data_source:
+            if len(line) > 0 and not line.isspace():
+                lines.append(line)
+
+            if len(lines) == self.process_batch_size:
+                yield lines
+                lines = []
+        if len(lines) > 0:
+            yield lines
+
+    @staticmethod
+    def _extract_batch(
+            args: Tuple[List[str], Union[PreTrainedTokenizer, PreTrainedTokenizerFast], int]
+    ) -> List[List[int]]:
+        lines, tokenizer, block_size = args
+        batch_encoding: List[List[int]] = []
+        current_line = [tokenizer.bos_token]
+        for line in lines:
+            tokens = tokenizer.tokenize(line)
+            if len(current_line) + len(tokens) + 1 <= block_size:
+                current_line.append(tokenizer.bos_token)
+                current_line.extend(tokens)
+            elif len(current_line) == block_size:
+                input_ids = tokenizer.convert_tokens_to_ids(current_line)
+                batch_encoding.append(input_ids)
+                current_line = [tokenizer.bos_token] + tokens
+            else:
+                current_line.append(tokenizer.bos_token)
+                n_tokens_to_add = block_size - len(current_line)
+                current_line.extend(tokens[:n_tokens_to_add])
+                input_ids = tokenizer.convert_tokens_to_ids(current_line)
+                batch_encoding.append(input_ids)
+
+                tokens = tokens[n_tokens_to_add:]
+                while len(tokens) >= block_size:
+                    input_ids = tokenizer.convert_tokens_to_ids(tokens[: block_size])
+                    batch_encoding.append(input_ids)
+                    tokens = tokens[block_size:]
+
+                current_line = tokens
+        return batch_encoding
