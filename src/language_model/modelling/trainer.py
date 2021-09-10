@@ -28,22 +28,6 @@ class TransformersTrainTask(ITask):
         self.trainer.save_model(os.path.join(environment_path, self.model_folder_name))
 
 
-class TransformersTrainTaskWithTokenizerSaving(TransformersTrainTask):
-    def __init__(
-        self,
-        trainer: Trainer,
-        checkpoint_folder: Optional[str] = None,
-        model_folder_name: str = "model",
-        tokenizer_folder_name: str = "tokenizer",
-    ):
-        super().__init__(trainer, checkpoint_folder, model_folder_name)
-        self.tokenizer_folder_name = tokenizer_folder_name
-
-    def execute(self, environment_path: str) -> None:
-        super().execute(environment_path)
-        self.trainer.tokenizer.save_pretrained(os.path.join(environment_path, self.tokenizer_folder_name))
-
-
 class RobertaForMaskedLMTrainTask(ITask):
     def __init__(
         self,
