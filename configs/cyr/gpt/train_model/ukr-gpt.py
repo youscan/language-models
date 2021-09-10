@@ -60,7 +60,7 @@ training_args = TrainingArguments(
     load_best_model_at_end=True,
     group_by_length=False,
     report_to=["mlflow"],
-    dataloader_num_workers=1  # because of IterableDataset that reads from one opened file
+    dataloader_num_workers=1,  # because of IterableDataset that reads from one opened file
 )
 
 trainer = Trainer(

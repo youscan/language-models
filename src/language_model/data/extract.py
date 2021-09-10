@@ -7,13 +7,13 @@ from collections import Hashable as HashableType
 from collections import OrderedDict
 from concurrent import futures
 from concurrent.futures import ProcessPoolExecutor
+from math import ceil
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Hashable, Iterable, Iterator, List, Optional, Union
 
 import numpy as np
 from bs4 import BeautifulSoup
 from ds_shared.loading import load_pickle
-from math import ceil
 from more_itertools import chunked
 from pynlple.data.corpus import FilteringSource, JsonFieldSource, MappingSource, StackingSource
 from pynlple.data.filesource import FilePathSource
@@ -21,8 +21,8 @@ from pynlple.data.source import Source
 from pynlple.processing.preprocessor import IPreprocessor
 from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
 
-from .utils import write_to_texts_file, write_to_train_val_files
 from ..pipeline import ITask
+from .utils import write_to_texts_file, write_to_train_val_files
 
 MIN_TEXT_LEN = 10
 MIN_TEXT_TOKEN_LENGTH = 2
@@ -274,7 +274,7 @@ class ExtractVectorsFromTexts(ITask):
             logging.info(f"Currently extracted {counter} batches of size {self.process_batch_size}")
             counter += 1
 
-        logging.info(f"Vectors extracted")
+        logging.info("Vectors extracted")
 
     def _read_chunk(self) -> Iterator[List[str]]:
         lines: List[str] = []
@@ -290,7 +290,7 @@ class ExtractVectorsFromTexts(ITask):
 
     @staticmethod
     def _extract_batch(
-            lines: List[str], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast], block_size: int
+        lines: List[str], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast], block_size: int
     ) -> List[List[int]]:
         batch_encoding: List[List[int]] = []
         current_line = [tokenizer.bos_token]
