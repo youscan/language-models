@@ -7,7 +7,7 @@ from typing import Dict, Iterable, Iterator, List, Optional, Sequence
 
 import torch
 from torch._utils import _accumulate
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, IterableDataset
 from torch.utils.data.dataset import T_co
 from transformers import PreTrainedTokenizer
 
@@ -129,31 +129,39 @@ def split_lazy_dataset(dataset: LazyDataset, portions: Sequence[float]) -> List[
     return [LazySubset(dataset, portions_provider=portions_provider, portion_id=i) for i in range(len(portions))]
 
 
-class FromInputIdsDataset(LazyDataset):
+class FromInputIdsDataset(IterableDataset):
     def __init__(self, input_ids_file_path: str):
         super(FromInputIdsDataset, self).__init__()
         self.input_ids_file_path = input_ids_file_path
+        self.length = self._get_number_of_valid_lines()
 
-    def _read_input_ids(self) -> List[List[int]]:
-        input_ids_list: List[List[int]] = []
+    def _get_number_of_valid_lines(self) -> int:
+        number_of_valid_lines = 0
+        for _ in self._read_lines():
+            number_of_valid_lines += 1
+        return number_of_valid_lines
+
+    def _read_lines(self) -> Iterable[str]:
         with open(self.input_ids_file_path, "r") as f:
             for line in f:
                 line = line.strip()
                 if line:
-                    input_ids = json.loads(line)
-                    if input_ids:
-                        input_ids_list.append(input_ids)
-        return input_ids_list
+                    yield line
 
-    def __linit_entries__(self) -> Sequence[T_co]:
-        logging.info("Start reading input ids")
-        entries = self._read_input_ids()
-        logging.info("input ids have been read")
-        return entries
+    def __len__(self) -> int:
+        return self.length
+
+    def __iter__(self) -> Iterator[List[int]]:
+        for line in self._read_lines():
+            yield self._process(line)
+
+    @staticmethod
+    def _process(line: str) -> List[int]:
+        return json.loads(line)  # type: ignore
 
 
 class DataCollatorForGroupTextForCasualLMDataset:
     def __call__(self, examples: List[List[int]]) -> Dict[str, torch.Tensor]:
-        input_ids = torch.tensor(examples, dtype=torch.int)
-        labels = torch.tensor(examples, dtype=torch.int)
+        input_ids = torch.tensor(examples, dtype=torch.long)
+        labels = torch.tensor(examples, dtype=torch.long)
         return {"input_ids": input_ids, "labels": labels}
