@@ -5,14 +5,15 @@ import os
 import random
 from collections import Hashable as HashableType
 from collections import OrderedDict
+from concurrent import futures
 from concurrent.futures import ProcessPoolExecutor
-from math import ceil
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Hashable, Iterable, Iterator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, Hashable, Iterable, Iterator, List, Optional, Union
 
 import numpy as np
 from bs4 import BeautifulSoup
 from ds_shared.loading import load_pickle
+from math import ceil
 from more_itertools import chunked
 from pynlple.data.corpus import FilteringSource, JsonFieldSource, MappingSource, StackingSource
 from pynlple.data.filesource import FilePathSource
@@ -20,8 +21,8 @@ from pynlple.data.source import Source
 from pynlple.processing.preprocessor import IPreprocessor
 from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
 
-from ..pipeline import ITask
 from .utils import write_to_texts_file, write_to_train_val_files
+from ..pipeline import ITask
 
 MIN_TEXT_LEN = 10
 MIN_TEXT_TOKEN_LENGTH = 2
@@ -259,16 +260,21 @@ class ExtractVectorsFromTexts(ITask):
         for lines in self._read_chunk():
             batch_size = ceil(len(lines) / self.workers)
             batched_lines = chunked(lines, batch_size)
-            extract_batch_args = ((batch_lines, self.tokenizer, self.block_size) for batch_lines in batched_lines)
 
             with open(input_ids_file, "a") as fp:
                 with ProcessPoolExecutor(max_workers=self.workers) as executor:
-                    for batch in executor.map(self._extract_batch, extract_batch_args):
-                        for input_ids in batch:
+                    tasks = [
+                        executor.submit(self._extract_batch, batch_lines, self.tokenizer, self.block_size)
+                        for batch_lines in batched_lines
+                    ]
+                    for completed_task in futures.as_completed(tasks):
+                        for input_ids in completed_task.result():
                             fp.write(json.dumps(input_ids))
                             fp.write("\n")
             logging.info(f"Currently extracted {counter} batches of size {self.process_batch_size}")
             counter += 1
+
+        logging.info(f"Vectors extracted")
 
     def _read_chunk(self) -> Iterator[List[str]]:
         lines: List[str] = []
@@ -284,9 +290,8 @@ class ExtractVectorsFromTexts(ITask):
 
     @staticmethod
     def _extract_batch(
-        args: Tuple[List[str], Union[PreTrainedTokenizer, PreTrainedTokenizerFast], int]
+            lines: List[str], tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast], block_size: int
     ) -> List[List[int]]:
-        lines, tokenizer, block_size = args
         batch_encoding: List[List[int]] = []
         current_line = [tokenizer.bos_token]
         for line in lines:
