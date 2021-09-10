@@ -10,14 +10,10 @@ from transformers import (
 from language_model.data.dataset import DataCollatorForGroupTextForCasualLMDataset, FromInputIdsDataset
 from language_model.modelling.trainer import TransformersTrainTask
 
-TOKENIZER_PATH = "/mnt/lost+found/language-models/outputs/cyr/gpt/train_tokenizer/convert-to-transformers/tokenizer/"
+TOKENIZER_PATH = "outputs/cyr/gpt/train_tokenizer/convert-to-transformers/tokenizer/"
 
-TRAIN_IDS_PATH = (
-    "/mnt/lost+found/language-models/outputs/cyr/gpt/extract_vectors/vectorize-train/processed_batch.jsonl"
-)
-VALIDATION_IDS_PATH = (
-    "/mnt/lost+found/language-models/outputs/cyr/gpt/extract_vectors/vectorize-validation/processed_batch.jsonl"
-)
+TRAIN_IDS_PATH = "outputs/cyr/gpt/extract_vectors/vectorize-train/processed_batch.jsonl"
+VALIDATION_IDS_PATH = "outputs/cyr/gpt/extract_vectors/vectorize-validation/processed_batch.jsonl"
 MODEL_MAX_LENGTH = 1024
 
 
