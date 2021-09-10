@@ -8,13 +8,15 @@ from transformers import (
 )
 
 from language_model.data.dataset import DataCollatorForGroupTextForCasualLMDataset, FromInputIdsDataset
-from language_model.modelling.trainer import TransformersTrainTaskWithTokenizerSaving
+from language_model.modelling.trainer import TransformersTrainTask
 
 TOKENIZER_PATH = "/mnt/lost+found/language-models/outputs/cyr/gpt/train_tokenizer/convert-to-transformers/tokenizer/"
 
-TRAIN_IDS_PATH = "/mnt/lost+found/language-models/outputs/cyr/gpt/extract_texts/vectorize-train/processed_batch.jsonl"
+TRAIN_IDS_PATH = (
+    "/mnt/lost+found/language-models/outputs/cyr/gpt/extract_vectors/vectorize-train/processed_batch.jsonl"
+)
 VALIDATION_IDS_PATH = (
-    "/mnt/lost+found/language-models/outputs/cyr/gpt/extract_texts/vectorize-validation/processed_batch.jsonl"
+    "/mnt/lost+found/language-models/outputs/cyr/gpt/extract_vectors/vectorize-validation/processed_batch.jsonl"
 )
 MODEL_MAX_LENGTH = 1024
 
@@ -38,8 +40,8 @@ training_args = TrainingArguments(
     evaluation_strategy=IntervalStrategy.STEPS,
     eval_steps=250000,
     num_train_epochs=5,
-    per_device_train_batch_size=8,  # overall bs = 8 * 8 * num_gpus (GPT2 used 512)
-    gradient_accumulation_steps=8,
+    per_device_train_batch_size=4,  # overall bs = 4 * 16 * num_gpus (GPT2 used 512)
+    gradient_accumulation_steps=16,
     per_device_eval_batch_size=4,
     output_dir="checkpoints",
     overwrite_output_dir=False,
@@ -58,6 +60,7 @@ training_args = TrainingArguments(
     load_best_model_at_end=True,
     group_by_length=False,
     report_to=["mlflow"],
+    dataloader_num_workers=1  # because of IterableDataset that reads from one opened file
 )
 
 trainer = Trainer(
@@ -68,4 +71,4 @@ trainer = Trainer(
     data_collator=data_collator,
 )
 
-task = TransformersTrainTaskWithTokenizerSaving(trainer=trainer)
+task = TransformersTrainTask(trainer=trainer)
