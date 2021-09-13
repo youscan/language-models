@@ -34,14 +34,14 @@ training_args = TrainingArguments(
     do_train=True,
     do_eval=True,
     evaluation_strategy=IntervalStrategy.STEPS,
-    eval_steps=250000,
+    eval_steps=20_000,
     num_train_epochs=5,
     per_device_train_batch_size=4,  # overall bs = 4 * 16 * num_gpus (GPT2 used 512)
     gradient_accumulation_steps=16,
     per_device_eval_batch_size=4,
     output_dir="checkpoints",
     overwrite_output_dir=False,
-    save_steps=250000,
+    save_steps=20_000,
     save_total_limit=10,
     prediction_loss_only=False,
     learning_rate=0.0002,  # (was manually tuned in GPT2 on held-out validation)
