@@ -161,7 +161,11 @@ class FromInputIdsDataset(IterableDataset):
 
 
 class DataCollatorForGroupTextForCasualLMDataset:
+    def __init__(self, max_length: int):
+        self.max_length = max_length
+
     def __call__(self, examples: List[List[int]]) -> Dict[str, torch.Tensor]:
+        examples = [ids[: self.max_length] for ids in examples]
         input_ids = torch.tensor(examples, dtype=torch.long)
         labels = torch.tensor(examples, dtype=torch.long)
         return {"input_ids": input_ids, "labels": labels}

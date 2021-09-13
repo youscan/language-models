@@ -27,7 +27,7 @@ model = GPT2LMHeadModel(model_config)
 # data
 train_dataset = FromInputIdsDataset(TRAIN_IDS_PATH)
 valid_dataset = FromInputIdsDataset(VALIDATION_IDS_PATH)
-data_collator = DataCollatorForGroupTextForCasualLMDataset()
+data_collator = DataCollatorForGroupTextForCasualLMDataset(MODEL_MAX_LENGTH)
 
 
 training_args = TrainingArguments(
