@@ -97,3 +97,7 @@ results/
 outputs/
 lab/
 credentials
+
+# logs
+logs/
+mlruns/
