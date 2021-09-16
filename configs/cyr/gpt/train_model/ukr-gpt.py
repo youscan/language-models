@@ -7,7 +7,11 @@ from transformers import (
     TrainingArguments,
 )
 
-from language_model.data.dataset import DataCollatorForGroupTextForCasualLMDataset, FromInputIdsDataset
+from language_model.data.dataset import (
+    DataCollatorForGroupTextForCasualLMDataset,
+    FromInputIdsDataset,
+    FromInputIdsIterableDataset,
+)
 from language_model.modelling.trainer import TransformersTrainTask
 
 TOKENIZER_PATH = "outputs/cyr/gpt/train_tokenizer/convert-to-transformers/tokenizer/"
@@ -25,7 +29,7 @@ model = GPT2LMHeadModel(model_config)
 
 
 # data
-train_dataset = FromInputIdsDataset(TRAIN_IDS_PATH)
+train_dataset = FromInputIdsIterableDataset(TRAIN_IDS_PATH)
 valid_dataset = FromInputIdsDataset(VALIDATION_IDS_PATH)
 data_collator = DataCollatorForGroupTextForCasualLMDataset(MODEL_MAX_LENGTH)
 

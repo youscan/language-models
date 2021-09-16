@@ -129,9 +129,9 @@ def split_lazy_dataset(dataset: LazyDataset, portions: Sequence[float]) -> List[
     return [LazySubset(dataset, portions_provider=portions_provider, portion_id=i) for i in range(len(portions))]
 
 
-class FromInputIdsDataset(IterableDataset):
+class FromInputIdsIterableDataset(IterableDataset):
     def __init__(self, input_ids_file_path: str):
-        super(FromInputIdsDataset, self).__init__()
+        super(FromInputIdsIterableDataset, self).__init__()
         self.input_ids_file_path = input_ids_file_path
         self.length = self._get_number_of_valid_lines()
 
@@ -154,6 +154,26 @@ class FromInputIdsDataset(IterableDataset):
     def __iter__(self) -> Iterator[List[int]]:
         for line in self._read_lines():
             yield self._process(line)
+
+    @staticmethod
+    def _process(line: str) -> List[int]:
+        return json.loads(line)  # type: ignore
+
+
+class FromInputIdsDataset(Dataset):
+    def __init__(self, input_ids_file_path: str):
+        self.data = []
+        with open(input_ids_file_path, "r") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    self.data.append(self._process(line))
+
+    def __getitem__(self, index: int) -> List[int]:
+        return self.data[index]
+
+    def __len__(self) -> int:
+        return len(self.data)
 
     @staticmethod
     def _process(line: str) -> List[int]:
