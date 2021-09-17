@@ -61,4 +61,4 @@ class TrainTokenizerTask(ITask):
 
     def execute(self, environment_path: str) -> None:
         self.tokenizer.train_from_iterator(self.iterator, trainer=self.trainer)
-        self.tokenizer.save(path=os.path.join(environment_path, self.tokenizer_file_name), pretty=True)
+        self.tokenizer.save(os.path.join(environment_path, self.tokenizer_file_name), pretty=True)

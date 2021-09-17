@@ -1,4 +1,5 @@
 import itertools
+import json
 import logging
 import math
 from itertools import chain
@@ -6,7 +7,7 @@ from typing import Dict, Iterable, Iterator, List, Optional, Sequence
 
 import torch
 from torch._utils import _accumulate
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, IterableDataset
 from torch.utils.data.dataset import T_co
 from transformers import PreTrainedTokenizer
 
@@ -76,7 +77,7 @@ class LineByLineTextDataset(LazyDataset):
 
     def __linit_entries__(self) -> Sequence[T_co]:
         logging.info(f"Creating features from dataset files: {self.file_paths}")
-        entries: List[List[Dict[str, torch.tensor]]] = []
+        entries: List[List[Dict[str, torch.Tensor]]] = []
         for lines in self._read_chunk():
             entries.append(self._extract_batch(lines))
         logging.info(f"Currently read total {sum(map(len, entries))} at end")
@@ -126,3 +127,65 @@ class LazySubset(Dataset):
 def split_lazy_dataset(dataset: LazyDataset, portions: Sequence[float]) -> List[LazySubset]:
     portions_provider = Portions(dataset=dataset, portions=portions)
     return [LazySubset(dataset, portions_provider=portions_provider, portion_id=i) for i in range(len(portions))]
+
+
+class FromInputIdsIterableDataset(IterableDataset):
+    def __init__(self, input_ids_file_path: str):
+        super(FromInputIdsIterableDataset, self).__init__()
+        self.input_ids_file_path = input_ids_file_path
+        self.length = self._get_number_of_valid_lines()
+
+    def _get_number_of_valid_lines(self) -> int:
+        number_of_valid_lines = 0
+        for _ in self._read_lines():
+            number_of_valid_lines += 1
+        return number_of_valid_lines
+
+    def _read_lines(self) -> Iterable[str]:
+        with open(self.input_ids_file_path, "r") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    yield line
+
+    def __len__(self) -> int:
+        return self.length
+
+    def __iter__(self) -> Iterator[List[int]]:
+        for line in self._read_lines():
+            yield self._process(line)
+
+    @staticmethod
+    def _process(line: str) -> List[int]:
+        return json.loads(line)  # type: ignore
+
+
+class FromInputIdsDataset(Dataset):
+    def __init__(self, input_ids_file_path: str):
+        self.data = []
+        with open(input_ids_file_path, "r") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    self.data.append(self._process(line))
+
+    def __getitem__(self, index: int) -> List[int]:
+        return self.data[index]
+
+    def __len__(self) -> int:
+        return len(self.data)
+
+    @staticmethod
+    def _process(line: str) -> List[int]:
+        return json.loads(line)  # type: ignore
+
+
+class DataCollatorForGroupTextForCasualLMDataset:
+    def __init__(self, max_length: int):
+        self.max_length = max_length
+
+    def __call__(self, examples: List[List[int]]) -> Dict[str, torch.Tensor]:
+        examples = [ids[: self.max_length] for ids in examples]
+        input_ids = torch.tensor(examples, dtype=torch.long)
+        labels = torch.tensor(examples, dtype=torch.long)
+        return {"input_ids": input_ids, "labels": labels}

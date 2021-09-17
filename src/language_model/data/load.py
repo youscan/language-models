@@ -3,6 +3,7 @@ import logging
 import os
 from typing import Any, Callable, Dict, Optional
 
+import wget
 from ds_shared.download import YsDownloader
 from ds_shared.saving import save_pickle
 
@@ -42,4 +43,13 @@ class YSDataDownloadTask(ITask):
             logging.info(f"Loading {self.topic_id}. Next batch")
             mentions_chunk = downloader.download(self.topic_id, last_mention_id=last_mention_id)
 
+        logging.info("Download completed.")
+
+
+class WikiDownloadTask(ITask):
+    def __init__(self, url: str):
+        self.url = url
+
+    def execute(self, environment_path: str) -> None:
+        wget.download(self.url, os.path.join(environment_path, self.url.split("/")[-1]))
         logging.info("Download completed.")

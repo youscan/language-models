@@ -28,8 +28,8 @@ Ukrainian Roberta is released via [HuggingFace Transformers library](https://hug
 ```python
 from transformers import pipeline, RobertaForMaskedLM, RobertaTokenizer
 
-model = RobertaForMaskedLM.from_pretrained("ukr-roberta-base")
-tokenizer = RobertaTokenizer.from_pretrained("ukr-roberta-base")
+model = RobertaForMaskedLM.from_pretrained("youscan/ukr-roberta-base")
+tokenizer = RobertaTokenizer.from_pretrained("youscan/ukr-roberta-base")
 
 fill_mask = pipeline('fill-mask', model=model, tokenizer=tokenizer)
 fill_mask("Тарас Шевченко – великий українсьский <mask>.")

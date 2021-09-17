@@ -91,6 +91,13 @@ ENV/
 .idea/
 .mypy_cache/
 apex/
+LSH/
 /data/
 results/
 outputs/
+lab/
+credentials
+
+# logs
+logs/
+mlruns/
